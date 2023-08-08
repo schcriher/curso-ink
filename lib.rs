@@ -54,16 +54,16 @@ mod flipper {
         #[ink::test]
         fn default_works() {
             let flipper = Flipper::default();
-            assert_eq!(flipper.get(), false);
+            assert!(!flipper.get());
         }
 
         /// We test a simple use case of our contract.
         #[ink::test]
         fn it_works() {
             let mut flipper = Flipper::new(false);
-            assert_eq!(flipper.get(), false);
+            assert!(!flipper.get());
             flipper.flip();
-            assert_eq!(flipper.get(), true);
+            assert!(flipper.get());
         }
     }
 
