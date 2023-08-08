@@ -10,10 +10,12 @@
 - Webs:
   - https://use.ink/getting-started/setup/
   - https://github.com/paritytech/cargo-contract
-- Acciones:
-  - `rustup component add rust-src`
-  - `rustup target add wasm32-unknown-unknown`
-  - `cargo install --force cargo-contract`
+- Acciones: `cargo-contract <= 3.0.1` es incompatible con `rustc >= 1.70.0` y `cargo-contract = 4.0.0` está en beta:
+  - `rustup install 1.69`
+  - `rustup default 1.69`
+  - `rustup component add rust-src --toolchain 1.69`
+  - `rustup target add wasm32-unknown-unknown --toolchain 1.69`
+  - `cargo install --force --version 3.0.1 cargo-contract`
 
 ## Substrate contracts node
 
@@ -22,6 +24,14 @@
   - https://github.com/paritytech/substrate-contracts-node/releases
 - Acciones: descargar `substrate-contracts-node-linux.tar.gz`
 
+## Nodos
+
+- Local:
+  - ejecutar `substrate-contracts-node`
+  - Webs:
+    - https://contracts-ui.substrate.io
+    - https://polkadot.js.org/apps/
+
 # Proyecto
 
 ## Software utilizado:
@@ -29,9 +39,9 @@
 | Software                 | Versión                                |
 | ------------------------ | -------------------------------------- |
 | rustup                   | 1.26.0 (5af9b9484 2023-04-05)          |
-| rustc                    | 1.70.0 (90c541806 2023-05-31)          |
-| cargo                    | 1.70.0 (ec8a8a0ca 2023-04-25)          |
-| cargo-contract-contract  | 3.0.1-unknown-x86_64-unknown-linux-gnu |
+| rustc                    | 1.69.0 (84c898d65 2023-04-16)          |
+| cargo                    | 1.69.0 (6e9a83356 2023-04-12)          |
+| cargo-contract           | 3.0.1-unknown-x86_64-unknown-linux-gnu |
 | substrate-contracts-node | 0.30.0-72e68577688                     |
 
 ## Inicialización del proyecto
@@ -41,6 +51,7 @@ cargo contract new flipper
 cd flipper
 
 cargo test --package flipper --lib -- flipper::tests --nocapture
+cargo contract build --target wasm
 
 git init
 git add .
