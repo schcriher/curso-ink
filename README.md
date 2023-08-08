@@ -81,11 +81,16 @@ Modificar el smart contract para empezar a darle forma a nuestra organización:
 
 **Storage:**
 
-- [ ] Incluir a los contribuyentes con su reputación asociada (usar vectores).
-- [ ] Incluir una cuenta administradora, que podrá agregar/eliminar contribuyentes.
+- [x] Incluir a los contribuyentes con su reputación asociada (usar vectores).
+- [x] Incluir una cuenta administradora, que podrá agregar/eliminar contribuyentes.
 
 **Mensajes:**
 
-- [ ] Agregar/Eliminar contribuyente
-- [ ] Votar (sólamente un contribuyente puede votar a otro)
-- [ ] Consultar reputación de contribuyente
+- [x] Agregar/Eliminar contribuyente
+- [x] Votar (sólamente un contribuyente puede votar a otro)
+- [x] Consultar reputación de contribuyente
+
+**Notas:** para esta etapa del desarrollo se asumen las siguientes condiciones:
+
+- La "reputación" es la suma de votos que tiene un contribuyente
+- Un contribuyente puede votar infinitamente a otros contribuyentes
