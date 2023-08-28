@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
 #[ink::contract]
-mod flipper {
+mod organization {
     use ink::prelude::vec::Vec;
     use scale::{Decode, Encode};
 
@@ -28,14 +28,14 @@ mod flipper {
     }
 
     #[ink(storage)]
-    pub struct Flipper {
+    pub struct Organization {
         /// Administrator wallet, is who can add or remove contributors
         administrator: AccountId,
         /// List of contributors with their information
         contributors: Vec<Contributor>,
     }
 
-    impl Flipper {
+    impl Organization {
         /// Constructor initializes the `administrator` and an empty list of `contributors`
         #[ink(constructor)]
         pub fn new(administrator: AccountId) -> Self {
@@ -159,7 +159,7 @@ mod flipper {
         use ink::env::{test::set_caller, DefaultEnvironment};
 
         pub struct Context {
-            contract: Flipper,
+            contract: Organization,
             admin: AccountId,
             user0: AccountId,
             user1: AccountId,
@@ -169,7 +169,7 @@ mod flipper {
         impl Context {
             pub fn new() -> Self {
                 let admin = AccountId::from([u8::MAX; 32]);
-                let contract = Flipper::new(admin);
+                let contract = Organization::new(admin);
 
                 let user0 = AccountId::from([0; 32]);
                 let user1 = AccountId::from([1; 32]);

@@ -1,11 +1,15 @@
-# Instalación del entorno de derarrollo (Linux)
+# DAO: Decentralized Autonomous Organization
 
-## Rust & Cargo
+---
+
+## Instalación del entorno de derarrollo (GNU/Linux)
+
+### Rust & Cargo
 
 - Web: https://www.rust-lang.org/tools/install
 - Acción: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
-## Ink!
+### Ink!
 
 - Webs:
   - https://use.ink/getting-started/setup/
@@ -17,24 +21,18 @@
   - `rustup target add wasm32-unknown-unknown --toolchain 1.69`
   - `cargo install --force --version 3.0.1 cargo-contract`
 
-## Substrate contracts node
+### Node
 
 - Webs:
   - https://github.com/paritytech/substrate-contracts-node
   - https://github.com/paritytech/substrate-contracts-node/releases
 - Acciones: descargar `substrate-contracts-node-linux.tar.gz`
 
-## Nodos
+---
 
-- Local:
-  - ejecutar `substrate-contracts-node`
-  - Webs:
-    - https://contracts-ui.substrate.io
-    - https://polkadot.js.org/apps/
+## Proyecto
 
-# Proyecto
-
-## Software utilizado:
+### Software utilizado:
 
 | Software                 | Versión                                |
 | ------------------------ | -------------------------------------- |
@@ -44,7 +42,7 @@
 | cargo-contract           | 3.0.1-unknown-x86_64-unknown-linux-gnu |
 | substrate-contracts-node | 0.30.0-72e68577688                     |
 
-## Inicialización del proyecto
+### Inicialización del proyecto
 
 ```Bash
 cargo contract new flipper
@@ -61,13 +59,33 @@ git remote add origin git@github.com:schcriher/curso-ink.git
 git push -u origin master
 ```
 
+---
+
+## Pruebas
+
+### Compilación
+
+```Bash
+cargo test --package organization --lib -- organization::tests --nocapture
+cargo contract build --target wasm
+```
+
+### Ejecución local
+
+- Ejecutar `substrate-contracts-node`
+- Webs:
+  - https://contracts-ui.substrate.io
+  - https://polkadot.js.org/apps/
+
+---
+
 ## Avance del proyecto
 
-### Objetivo
+**Objetivo:** Armar una organización que premie a sus contribuyentes según su reputación.
 
-Armar una organización que premie a sus contribuyentes según su reputación.
+<br/>
 
-### Clase 1
+### 📝 Clase 1
 
 - [x] Configurar el entorno de desarrollo local
 - [x] Generar un contrato flipper
@@ -75,7 +93,9 @@ Armar una organización que premie a sus contribuyentes según su reputación.
 - [x] Subir el código del contrato generado
 - [x] Compartir el repositorio en el canal de discord para el trackeo del mismo
 
-### Clase 2
+<br/>
+
+### 📝 Clase 2
 
 Modificar el smart contract para empezar a darle forma a nuestra organización:
 
@@ -90,12 +110,14 @@ Modificar el smart contract para empezar a darle forma a nuestra organización:
 - [x] Votar (sólamente un contribuyente puede votar a otro)
 - [x] Consultar reputación de contribuyente
 
-**Notas:** para esta etapa del desarrollo se asumen las siguientes condiciones:
+> **Notas:** _para esta etapa del desarrollo se asumen las siguientes condiciones:_
+>
+> - _La "reputación" es la suma de votos que tiene un contribuyente_
+> - _Un contribuyente puede votar infinitamente a otros contribuyentes_
 
-- La "reputación" es la suma de votos que tiene un contribuyente
-- Un contribuyente puede votar infinitamente a otros contribuyentes
+<br/>
 
-### Clase 3
+### 📝 Clase 3
 
 - [ ] Modificar el storage para utilizar Mappings en lugar de Vectores
 - [ ] Modificar lógica para que el poder de voto se corresponda con la reputación del contribuyente
@@ -106,7 +128,11 @@ Modificar el smart contract para empezar a darle forma a nuestra organización:
   - Los únicos que pueden votar son los contribuyentes registrados
   - La reputación es privada. Cada contribuyente puede consultar únicamente la propia
 
-### Clase 4
+> **Notas:** _Proyecto renombrado a "Organization"._
+
+<br/>
+
+### 📝 Clase 4
 
 - [ ] Crear un contrato PSP34 (Utilizar Templates de OpenBrush) que sirva de certificado de votación
 - [ ] Transferir al contribuyente un NFT que certifique su voto
