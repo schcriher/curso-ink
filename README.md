@@ -94,3 +94,22 @@ Modificar el smart contract para empezar a darle forma a nuestra organización:
 
 - La "reputación" es la suma de votos que tiene un contribuyente
 - Un contribuyente puede votar infinitamente a otros contribuyentes
+
+### Clase 3
+
+- [ ] Modificar el storage para utilizar Mappings en lugar de Vectores
+- [ ] Modificar lógica para que el poder de voto se corresponda con la reputación del contribuyente
+      (mayor reputación → mayor poder de voto)
+- [ ] Emitir un evento por cada voto
+- [ ] Agregar los siguientes controles:
+  - El único que puede agregar o eliminar contribuyentes es el Admin
+  - Los únicos que pueden votar son los contribuyentes registrados
+  - La reputación es privada. Cada contribuyente puede consultar únicamente la propia
+
+### Clase 4
+
+- [ ] Crear un contrato PSP34 (Utilizar Templates de OpenBrush) que sirva de certificado de votación
+- [ ] Transferir al contribuyente un NFT que certifique su voto
+- [ ] Definir un trait que represente el comportamiento de votación e implementarlo en el contrato:
+  - Votar
+  - Obtener reputación/votos de un contribuyente
