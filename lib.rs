@@ -2,10 +2,29 @@
 
 #[ink::contract]
 mod organization {
-    use ink::prelude::vec::Vec;
+    // necessary for a warning from "cargo contract build" (for non-use of StorageLayout) 🤷🏼
+    #[allow(unused_imports)]
+    use ink::storage::{traits::StorageLayout, Mapping};
     use scale::{Decode, Encode};
 
-    #[derive(PartialEq, Debug, Eq, Clone, Encode, Decode)]
+    // ------------------------------------
+    // DATA TYPES
+
+    pub type Reputation = u32;
+
+    /// Contributor information
+    #[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
+    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo, StorageLayout))]
+    pub struct Contributor {
+        /// Reputation of the contributor: sum of votes received
+        reputation: Reputation,
+    }
+
+    // ------------------------------------
+    // ERRORS
+
+    /// Possible erroneous results
+    #[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
     #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
     pub enum Error {
         AdministrativeFunction,
@@ -17,40 +36,37 @@ mod organization {
         YouAreNotContributor,
     }
 
-    /// Contributor information
-    #[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
-    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
-    pub struct Contributor {
-        /// Contributor wallet
-        account_id: AccountId,
-        /// Reputation of the contributor, votes received
-        reputation: u32,
+    // ------------------------------------
+    // EVENTS
+
+    /// Voting event
+    #[ink(event)]
+    pub struct Vote {
+        #[ink(topic)]
+        from: AccountId,
+        #[ink(topic)]
+        to: AccountId,
     }
+
+    // ------------------------------------
+    // CONTRACT
 
     #[ink(storage)]
     pub struct Organization {
         /// Administrator wallet, is who can add or remove contributors
         administrator: AccountId,
         /// List of contributors with their information
-        contributors: Vec<Contributor>,
+        contributors: Mapping<AccountId, Contributor>,
     }
 
     impl Organization {
-        /// Constructor initializes the `administrator` and an empty list of `contributors`
+        /// Constructor initializes the `administrator` and an empty map of `contributors`
         #[ink(constructor)]
         pub fn new(administrator: AccountId) -> Self {
             Self {
                 administrator,
-                contributors: Vec::new(),
+                contributors: Mapping::default(),
             }
-        }
-
-        // ------------------------------------------------------------------------------
-
-        fn get_index(&self, contributor_id: AccountId) -> Option<usize> {
-            self.contributors
-                .iter()
-                .position(|c| c.account_id == contributor_id)
         }
 
         // ------------------------------------------------------------------------------
@@ -66,14 +82,12 @@ mod organization {
                 return Err(Error::AdminCannotBeContributor);
             }
 
-            if self.get_index(contributor_id).is_some() {
+            if self.contributors.contains(contributor_id) {
                 return Err(Error::ContributorAlreadyExists);
             }
 
-            self.contributors.push(Contributor {
-                account_id: contributor_id,
-                reputation: 0,
-            });
+            self.contributors
+                .insert(contributor_id, &Contributor { reputation: 0 });
             Ok(())
         }
 
@@ -88,13 +102,11 @@ mod organization {
                 return Err(Error::AdminCannotBeContributor);
             }
 
-            let index = self.get_index(contributor_id);
-
-            if index.is_none() {
+            if !self.contributors.contains(contributor_id) {
                 return Err(Error::ContributorNotExist);
             }
 
-            self.contributors.remove(index.unwrap()); // unwrap is safe here
+            self.contributors.remove(contributor_id);
             Ok(())
         }
 
@@ -119,33 +131,42 @@ mod organization {
                 return Err(Error::CannotVoteItself);
             }
 
-            if self.get_index(emitter_id).is_none() {
+            if !self.contributors.contains(emitter_id) {
                 return Err(Error::YouAreNotContributor);
             }
 
-            let index = self.get_index(receiver_id);
-
-            if index.is_none() {
+            if !self.contributors.contains(receiver_id) {
                 return Err(Error::ContributorNotExist);
             }
 
-            let receiver = self.contributors.get_mut(index.unwrap()).unwrap(); // unwrap is safe here
-            receiver.reputation += 1;
+            // unwrap is safe here
+            let emitter = self.contributors.get(emitter_id).unwrap();
+            let mut receiver = self.contributors.get(receiver_id).unwrap();
+
+            // FIXME: temporary implementation, until the business logic is better defined
+            let sum = if emitter.reputation < 10 { 1 } else { 2 };
+
+            receiver.reputation += sum;
+            self.contributors.insert(receiver_id, &receiver); // update
+
+            self.env().emit_event(Vote {
+                from: emitter_id,
+                to: receiver_id,
+            });
+
             Ok(())
         }
 
-        /// Getting the reputation of a contributor
+        /// Getting the reputation of a contributor, from whom it is consulted
         #[ink(message)]
-        pub fn get_reputation(&self, contributor_id: AccountId) -> Result<u32, Error> {
-            // FIXME: It is assumed that anyone can see the contributor's reputation
+        pub fn get_reputation(&self) -> Result<Reputation, Error> {
+            let caller_id = self.env().caller();
 
-            let index = self.get_index(contributor_id);
-
-            if index.is_none() {
-                return Err(Error::ContributorNotExist);
+            if !self.contributors.contains(caller_id) {
+                return Err(Error::YouAreNotContributor);
             }
 
-            let contributor = self.contributors.get(index.unwrap()).unwrap(); // unwrap is safe here
+            let contributor = self.contributors.get(caller_id).unwrap(); // unwrap is safe here
             Ok(contributor.reputation)
         }
     }
@@ -167,7 +188,7 @@ mod organization {
         }
 
         impl Context {
-            pub fn new() -> Self {
+            fn new() -> Self {
                 let admin = AccountId::from([u8::MAX; 32]);
                 let contract = Organization::new(admin);
 
@@ -184,8 +205,22 @@ mod organization {
                 }
             }
 
-            pub fn get_contributor(&self, index: usize) -> &Contributor {
-                self.contract.contributors.get(index).unwrap()
+            fn add_contributor(&mut self, account_id: AccountId, reputation: Reputation) {
+                self.contract
+                    .contributors
+                    .insert(account_id, &Contributor { reputation });
+            }
+
+            fn get_reputation(&self, account_id: AccountId) -> Reputation {
+                self.contract
+                    .contributors
+                    .get(account_id)
+                    .unwrap()
+                    .reputation
+            }
+
+            fn contains(&self, account_id: AccountId) -> bool {
+                self.contract.contributors.contains(account_id)
             }
         }
 
@@ -196,23 +231,34 @@ mod organization {
             let context = Context::new();
 
             assert_eq!(context.contract.administrator, context.admin);
-            assert_eq!(context.contract.contributors.len(), 0);
+
+            assert!(!context.contains(context.admin));
+            assert!(!context.contains(context.user0));
+            assert!(!context.contains(context.user1));
+            assert!(!context.contains(context.user2));
         }
 
         #[ink::test]
         fn add_contributor_test() {
             let mut context = Context::new();
 
+            // admin
             set_caller::<DefaultEnvironment>(context.admin);
+            assert!(!context.contains(context.user0));
             assert_eq!(context.contract.add_contributor(context.user0), Ok(()));
+            assert!(context.contains(context.user0));
+            assert_eq!(context.get_reputation(context.user0), 0);
+
             assert_eq!(
                 context.contract.add_contributor(context.user0),
                 Err(Error::ContributorAlreadyExists)
             );
+
             assert_eq!(
                 context.contract.add_contributor(context.admin),
                 Err(Error::AdminCannotBeContributor)
             );
+            assert!(!context.contains(context.admin));
 
             // user0 is contributor
             set_caller::<DefaultEnvironment>(context.user0);
@@ -220,38 +266,43 @@ mod organization {
                 context.contract.add_contributor(context.user1),
                 Err(Error::AdministrativeFunction)
             );
+            assert!(!context.contains(context.user1));
 
             // user1 is not contributor
             set_caller::<DefaultEnvironment>(context.user1);
             assert_eq!(
-                context.contract.add_contributor(context.user0),
+                context.contract.add_contributor(context.user2),
                 Err(Error::AdministrativeFunction)
             );
+            assert!(!context.contains(context.user2));
         }
 
         #[ink::test]
         fn rem_contributor_test() {
             let mut context = Context::new();
-
-            set_caller::<DefaultEnvironment>(context.admin);
-            let _ = context.contract.add_contributor(context.user0);
+            context.add_contributor(context.user0, 0);
 
             set_caller::<DefaultEnvironment>(context.user0);
             assert_eq!(
                 context.contract.rem_contributor(context.user1),
                 Err(Error::AdministrativeFunction)
             );
+            assert!(context.contains(context.user0));
 
             set_caller::<DefaultEnvironment>(context.admin);
             assert_eq!(context.contract.rem_contributor(context.user0), Ok(()));
+            assert!(!context.contains(context.user0));
+
             assert_eq!(
                 context.contract.rem_contributor(context.user0),
                 Err(Error::ContributorNotExist)
             );
+
             assert_eq!(
                 context.contract.rem_contributor(context.user1),
                 Err(Error::ContributorNotExist)
             );
+
             assert_eq!(
                 context.contract.rem_contributor(context.admin),
                 Err(Error::AdminCannotBeContributor)
@@ -261,13 +312,10 @@ mod organization {
         #[ink::test]
         fn submit_vote_test() {
             let mut context = Context::new();
+            context.add_contributor(context.user0, 0);
+            context.add_contributor(context.user1, 0);
 
             set_caller::<DefaultEnvironment>(context.admin);
-            assert_eq!(context.contract.contributors.len(), 0);
-            assert_eq!(context.contract.add_contributor(context.user0), Ok(()));
-            assert_eq!(context.contract.add_contributor(context.user1), Ok(()));
-            assert_eq!(context.get_contributor(0).reputation, 0);
-            assert_eq!(context.get_contributor(1).reputation, 0);
             assert_eq!(
                 context.contract.submit_vote(context.user0),
                 Err(Error::AdminCannotSubmitOrReceivedVote)
@@ -275,15 +323,23 @@ mod organization {
 
             set_caller::<DefaultEnvironment>(context.user0);
             assert_eq!(context.contract.submit_vote(context.user1), Ok(()));
-            assert_eq!(context.get_contributor(0).reputation, 0);
-            assert_eq!(context.get_contributor(1).reputation, 1);
+            assert_eq!(context.get_reputation(context.user0), 0);
+            assert_eq!(context.get_reputation(context.user1), 1);
             assert_eq!(context.contract.submit_vote(context.user1), Ok(()));
-            assert_eq!(context.get_contributor(0).reputation, 0);
-            assert_eq!(context.get_contributor(1).reputation, 2);
+            assert_eq!(context.get_reputation(context.user0), 0);
+            assert_eq!(context.get_reputation(context.user1), 2);
+
             assert_eq!(
                 context.contract.submit_vote(context.user0),
                 Err(Error::CannotVoteItself)
             );
+            assert_eq!(context.get_reputation(context.user0), 0);
+
+            assert_eq!(
+                context.contract.submit_vote(context.user2),
+                Err(Error::ContributorNotExist)
+            );
+
             assert_eq!(
                 context.contract.submit_vote(context.admin),
                 Err(Error::AdminCannotSubmitOrReceivedVote)
@@ -291,66 +347,52 @@ mod organization {
 
             set_caller::<DefaultEnvironment>(context.user1);
             assert_eq!(context.contract.submit_vote(context.user0), Ok(()));
-            assert_eq!(context.get_contributor(0).reputation, 1);
-            assert_eq!(context.get_contributor(1).reputation, 2);
-
-            set_caller::<DefaultEnvironment>(context.user0);
-            assert_eq!(
-                context.contract.submit_vote(context.user2),
-                Err(Error::ContributorNotExist)
-            );
+            assert_eq!(context.get_reputation(context.user0), 1);
+            assert_eq!(context.get_reputation(context.user1), 2);
 
             set_caller::<DefaultEnvironment>(context.user2);
             assert_eq!(
                 context.contract.submit_vote(context.user0),
                 Err(Error::YouAreNotContributor)
             );
+            assert_eq!(context.get_reputation(context.user0), 1);
         }
 
         #[ink::test]
         fn get_reputation_test() {
             let mut context = Context::new();
-
-            set_caller::<DefaultEnvironment>(context.admin);
-            assert_eq!(context.contract.contributors.len(), 0);
-            assert_eq!(context.contract.add_contributor(context.user0), Ok(()));
-            assert_eq!(context.contract.add_contributor(context.user1), Ok(()));
+            context.add_contributor(context.user0, 1);
+            context.add_contributor(context.user1, 2);
 
             set_caller::<DefaultEnvironment>(context.user0);
-            assert_eq!(context.contract.submit_vote(context.user1), Ok(()));
-            assert_eq!(context.contract.get_reputation(context.user0), Ok(0));
-            assert_eq!(context.contract.get_reputation(context.user1), Ok(1));
-            assert_eq!(context.contract.submit_vote(context.user1), Ok(()));
-            assert_eq!(context.contract.get_reputation(context.user0), Ok(0));
-            assert_eq!(context.contract.get_reputation(context.user1), Ok(2));
-            assert_eq!(
-                context.contract.get_reputation(context.user2),
-                Err(Error::ContributorNotExist)
-            );
+            assert_eq!(context.contract.get_reputation(), Ok(1));
 
             set_caller::<DefaultEnvironment>(context.user1);
-            assert_eq!(context.contract.get_reputation(context.user0), Ok(0));
-            assert_eq!(context.contract.get_reputation(context.user1), Ok(2));
-            assert_eq!(
-                context.contract.get_reputation(context.user2),
-                Err(Error::ContributorNotExist)
-            );
-
-            set_caller::<DefaultEnvironment>(context.admin);
-            assert_eq!(context.contract.get_reputation(context.user0), Ok(0));
-            assert_eq!(context.contract.get_reputation(context.user1), Ok(2));
-            assert_eq!(
-                context.contract.get_reputation(context.user2),
-                Err(Error::ContributorNotExist)
-            );
+            assert_eq!(context.contract.get_reputation(), Ok(2));
 
             set_caller::<DefaultEnvironment>(context.user2);
-            assert_eq!(context.contract.get_reputation(context.user0), Ok(0));
-            assert_eq!(context.contract.get_reputation(context.user1), Ok(2));
             assert_eq!(
-                context.contract.get_reputation(context.user2),
-                Err(Error::ContributorNotExist)
+                context.contract.get_reputation(),
+                Err(Error::YouAreNotContributor)
             );
+        }
+
+        #[ink::test]
+        fn get_reputation_levels_test() {
+            let mut context = Context::new();
+            context.add_contributor(context.user0, 10);
+            context.add_contributor(context.user1, 9);
+            context.add_contributor(context.user2, 0);
+
+            set_caller::<DefaultEnvironment>(context.user0);
+            assert_eq!(context.contract.submit_vote(context.user2), Ok(()));
+            set_caller::<DefaultEnvironment>(context.user2);
+            assert_eq!(context.contract.get_reputation(), Ok(2)); // +2 (user0 rep>=10)
+
+            set_caller::<DefaultEnvironment>(context.user1);
+            assert_eq!(context.contract.submit_vote(context.user2), Ok(()));
+            set_caller::<DefaultEnvironment>(context.user2);
+            assert_eq!(context.contract.get_reputation(), Ok(3)); // +1 (user1 rep<10)
         }
     }
 

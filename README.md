@@ -1,7 +1,5 @@
 # DAO: Decentralized Autonomous Organization
 
----
-
 ## Instalación del entorno de derarrollo (GNU/Linux)
 
 ### Rust & Cargo
@@ -119,16 +117,27 @@ Modificar el smart contract para empezar a darle forma a nuestra organización:
 
 ### 📝 Clase 3
 
-- [ ] Modificar el storage para utilizar Mappings en lugar de Vectores
-- [ ] Modificar lógica para que el poder de voto se corresponda con la reputación del contribuyente
+- [x] Modificar el storage para utilizar Mappings en lugar de Vectores
+- [x] Modificar lógica para que el poder de voto se corresponda con la reputación del contribuyente
       (mayor reputación → mayor poder de voto)
-- [ ] Emitir un evento por cada voto
-- [ ] Agregar los siguientes controles:
+- [x] Emitir un evento por cada voto
+- [x] Agregar los siguientes controles:
   - El único que puede agregar o eliminar contribuyentes es el Admin
   - Los únicos que pueden votar son los contribuyentes registrados
   - La reputación es privada. Cada contribuyente puede consultar únicamente la propia
 
-> **Notas:** _Proyecto renombrado a "Organization"._
+> **Notas:** _Proyecto renombrado a "Organization", además se asumen las siguientes condiciones:_
+>
+> - _Hasta tener una definición mas completa de la lógica de negocio:_
+>
+>   - _Se mantiene la emisión ilimitada de votos_
+>   - _Se mantiene la emisión de votos positivos unicamente_
+>   - _El poder de voto se divide en dos categorías:_
+>
+>     - _contribuyentes con menos de 10 votos: suman 1 a la reputación con cada voto_
+>     - _contribuyentes con 10 o mas votos: suman 2 a la reputación con cada voto_
+>
+> - _El evento emitido en la votación contiene las direcciones del votante y el votado_
 
 <br/>
 
