@@ -228,171 +228,171 @@ mod organization {
 
         #[ink::test]
         fn constructor_test() {
-            let context = Context::new();
+            let ctx = Context::new();
 
-            assert_eq!(context.contract.administrator, context.admin);
+            assert_eq!(ctx.contract.administrator, ctx.admin);
 
-            assert!(!context.contains(context.admin));
-            assert!(!context.contains(context.user0));
-            assert!(!context.contains(context.user1));
-            assert!(!context.contains(context.user2));
+            assert!(!ctx.contains(ctx.admin));
+            assert!(!ctx.contains(ctx.user0));
+            assert!(!ctx.contains(ctx.user1));
+            assert!(!ctx.contains(ctx.user2));
         }
 
         #[ink::test]
         fn add_contributor_test() {
-            let mut context = Context::new();
+            let mut ctx = Context::new();
 
             // admin
-            set_caller::<DefaultEnvironment>(context.admin);
-            assert!(!context.contains(context.user0));
-            assert_eq!(context.contract.add_contributor(context.user0), Ok(()));
-            assert!(context.contains(context.user0));
-            assert_eq!(context.get_reputation(context.user0), 0);
+            set_caller::<DefaultEnvironment>(ctx.admin);
+            assert!(!ctx.contains(ctx.user0));
+            assert_eq!(ctx.contract.add_contributor(ctx.user0), Ok(()));
+            assert!(ctx.contains(ctx.user0));
+            assert_eq!(ctx.get_reputation(ctx.user0), 0);
 
             assert_eq!(
-                context.contract.add_contributor(context.user0),
+                ctx.contract.add_contributor(ctx.user0),
                 Err(Error::ContributorAlreadyExists)
             );
 
             assert_eq!(
-                context.contract.add_contributor(context.admin),
+                ctx.contract.add_contributor(ctx.admin),
                 Err(Error::AdminCannotBeContributor)
             );
-            assert!(!context.contains(context.admin));
+            assert!(!ctx.contains(ctx.admin));
 
             // user0 is contributor
-            set_caller::<DefaultEnvironment>(context.user0);
+            set_caller::<DefaultEnvironment>(ctx.user0);
             assert_eq!(
-                context.contract.add_contributor(context.user1),
+                ctx.contract.add_contributor(ctx.user1),
                 Err(Error::AdministrativeFunction)
             );
-            assert!(!context.contains(context.user1));
+            assert!(!ctx.contains(ctx.user1));
 
             // user1 is not contributor
-            set_caller::<DefaultEnvironment>(context.user1);
+            set_caller::<DefaultEnvironment>(ctx.user1);
             assert_eq!(
-                context.contract.add_contributor(context.user2),
+                ctx.contract.add_contributor(ctx.user2),
                 Err(Error::AdministrativeFunction)
             );
-            assert!(!context.contains(context.user2));
+            assert!(!ctx.contains(ctx.user2));
         }
 
         #[ink::test]
         fn rem_contributor_test() {
-            let mut context = Context::new();
-            context.add_contributor(context.user0, 0);
+            let mut ctx = Context::new();
+            ctx.add_contributor(ctx.user0, 0);
 
-            set_caller::<DefaultEnvironment>(context.user0);
+            set_caller::<DefaultEnvironment>(ctx.user0);
             assert_eq!(
-                context.contract.rem_contributor(context.user1),
+                ctx.contract.rem_contributor(ctx.user1),
                 Err(Error::AdministrativeFunction)
             );
-            assert!(context.contains(context.user0));
+            assert!(ctx.contains(ctx.user0));
 
-            set_caller::<DefaultEnvironment>(context.admin);
-            assert_eq!(context.contract.rem_contributor(context.user0), Ok(()));
-            assert!(!context.contains(context.user0));
+            set_caller::<DefaultEnvironment>(ctx.admin);
+            assert_eq!(ctx.contract.rem_contributor(ctx.user0), Ok(()));
+            assert!(!ctx.contains(ctx.user0));
 
             assert_eq!(
-                context.contract.rem_contributor(context.user0),
+                ctx.contract.rem_contributor(ctx.user0),
                 Err(Error::ContributorNotExist)
             );
 
             assert_eq!(
-                context.contract.rem_contributor(context.user1),
+                ctx.contract.rem_contributor(ctx.user1),
                 Err(Error::ContributorNotExist)
             );
 
             assert_eq!(
-                context.contract.rem_contributor(context.admin),
+                ctx.contract.rem_contributor(ctx.admin),
                 Err(Error::AdminCannotBeContributor)
             );
         }
 
         #[ink::test]
         fn submit_vote_test() {
-            let mut context = Context::new();
-            context.add_contributor(context.user0, 0);
-            context.add_contributor(context.user1, 0);
+            let mut ctx = Context::new();
+            ctx.add_contributor(ctx.user0, 0);
+            ctx.add_contributor(ctx.user1, 0);
 
-            set_caller::<DefaultEnvironment>(context.admin);
+            set_caller::<DefaultEnvironment>(ctx.admin);
             assert_eq!(
-                context.contract.submit_vote(context.user0),
+                ctx.contract.submit_vote(ctx.user0),
                 Err(Error::AdminCannotSubmitOrReceivedVote)
             );
 
-            set_caller::<DefaultEnvironment>(context.user0);
-            assert_eq!(context.contract.submit_vote(context.user1), Ok(()));
-            assert_eq!(context.get_reputation(context.user0), 0);
-            assert_eq!(context.get_reputation(context.user1), 1);
-            assert_eq!(context.contract.submit_vote(context.user1), Ok(()));
-            assert_eq!(context.get_reputation(context.user0), 0);
-            assert_eq!(context.get_reputation(context.user1), 2);
+            set_caller::<DefaultEnvironment>(ctx.user0);
+            assert_eq!(ctx.contract.submit_vote(ctx.user1), Ok(()));
+            assert_eq!(ctx.get_reputation(ctx.user0), 0);
+            assert_eq!(ctx.get_reputation(ctx.user1), 1);
+            assert_eq!(ctx.contract.submit_vote(ctx.user1), Ok(()));
+            assert_eq!(ctx.get_reputation(ctx.user0), 0);
+            assert_eq!(ctx.get_reputation(ctx.user1), 2);
 
             assert_eq!(
-                context.contract.submit_vote(context.user0),
+                ctx.contract.submit_vote(ctx.user0),
                 Err(Error::CannotVoteItself)
             );
-            assert_eq!(context.get_reputation(context.user0), 0);
+            assert_eq!(ctx.get_reputation(ctx.user0), 0);
 
             assert_eq!(
-                context.contract.submit_vote(context.user2),
+                ctx.contract.submit_vote(ctx.user2),
                 Err(Error::ContributorNotExist)
             );
 
             assert_eq!(
-                context.contract.submit_vote(context.admin),
+                ctx.contract.submit_vote(ctx.admin),
                 Err(Error::AdminCannotSubmitOrReceivedVote)
             );
 
-            set_caller::<DefaultEnvironment>(context.user1);
-            assert_eq!(context.contract.submit_vote(context.user0), Ok(()));
-            assert_eq!(context.get_reputation(context.user0), 1);
-            assert_eq!(context.get_reputation(context.user1), 2);
+            set_caller::<DefaultEnvironment>(ctx.user1);
+            assert_eq!(ctx.contract.submit_vote(ctx.user0), Ok(()));
+            assert_eq!(ctx.get_reputation(ctx.user0), 1);
+            assert_eq!(ctx.get_reputation(ctx.user1), 2);
 
-            set_caller::<DefaultEnvironment>(context.user2);
+            set_caller::<DefaultEnvironment>(ctx.user2);
             assert_eq!(
-                context.contract.submit_vote(context.user0),
+                ctx.contract.submit_vote(ctx.user0),
                 Err(Error::YouAreNotContributor)
             );
-            assert_eq!(context.get_reputation(context.user0), 1);
+            assert_eq!(ctx.get_reputation(ctx.user0), 1);
         }
 
         #[ink::test]
         fn get_reputation_test() {
-            let mut context = Context::new();
-            context.add_contributor(context.user0, 1);
-            context.add_contributor(context.user1, 2);
+            let mut ctx = Context::new();
+            ctx.add_contributor(ctx.user0, 1);
+            ctx.add_contributor(ctx.user1, 2);
 
-            set_caller::<DefaultEnvironment>(context.user0);
-            assert_eq!(context.contract.get_reputation(), Ok(1));
+            set_caller::<DefaultEnvironment>(ctx.user0);
+            assert_eq!(ctx.contract.get_reputation(), Ok(1));
 
-            set_caller::<DefaultEnvironment>(context.user1);
-            assert_eq!(context.contract.get_reputation(), Ok(2));
+            set_caller::<DefaultEnvironment>(ctx.user1);
+            assert_eq!(ctx.contract.get_reputation(), Ok(2));
 
-            set_caller::<DefaultEnvironment>(context.user2);
+            set_caller::<DefaultEnvironment>(ctx.user2);
             assert_eq!(
-                context.contract.get_reputation(),
+                ctx.contract.get_reputation(),
                 Err(Error::YouAreNotContributor)
             );
         }
 
         #[ink::test]
         fn get_reputation_levels_test() {
-            let mut context = Context::new();
-            context.add_contributor(context.user0, 10);
-            context.add_contributor(context.user1, 9);
-            context.add_contributor(context.user2, 0);
+            let mut ctx = Context::new();
+            ctx.add_contributor(ctx.user0, 10);
+            ctx.add_contributor(ctx.user1, 9);
+            ctx.add_contributor(ctx.user2, 0);
 
-            set_caller::<DefaultEnvironment>(context.user0);
-            assert_eq!(context.contract.submit_vote(context.user2), Ok(()));
-            set_caller::<DefaultEnvironment>(context.user2);
-            assert_eq!(context.contract.get_reputation(), Ok(2)); // +2 (user0 rep>=10)
+            set_caller::<DefaultEnvironment>(ctx.user0);
+            assert_eq!(ctx.contract.submit_vote(ctx.user2), Ok(()));
+            set_caller::<DefaultEnvironment>(ctx.user2);
+            assert_eq!(ctx.contract.get_reputation(), Ok(2)); // +2 (user0 rep>=10)
 
-            set_caller::<DefaultEnvironment>(context.user1);
-            assert_eq!(context.contract.submit_vote(context.user2), Ok(()));
-            set_caller::<DefaultEnvironment>(context.user2);
-            assert_eq!(context.contract.get_reputation(), Ok(3)); // +1 (user1 rep<10)
+            set_caller::<DefaultEnvironment>(ctx.user1);
+            assert_eq!(ctx.contract.submit_vote(ctx.user2), Ok(()));
+            set_caller::<DefaultEnvironment>(ctx.user2);
+            assert_eq!(ctx.contract.get_reputation(), Ok(3)); // +1 (user1 rep<10)
         }
     }
 
