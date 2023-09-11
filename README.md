@@ -175,3 +175,15 @@ Modificar el smart contract para empezar a darle forma a nuestra organización:
 > **Notas:**
 >
 > - Al interactuar con un segundo contrato ya no es posible realizar pruebas unitarias con datos falsos como se estaba haciendo hasta ahora. El archivo `ink_env-4.3.0/src/engine/off_chain/impls.rs` en su función `instantiate_contract` (línea 488) lo define como "no implementado" con el mensaje _"off-chain environment does not support contract instantiation"_, por lo tanto se eliminan todas las pruebas unitarias (quedan en el historial de git).
+
+<br/>
+
+### 📝 Clase 5
+
+_Clase teórica sobre Chain Extensions, sin cambios en el proyecto._
+
+<br/>
+
+### 📝 Clase 6
+
+- [ ] Agregar tests de integración y E2E al código de la clase #4. No hace falta que cubran el 100% del código.
