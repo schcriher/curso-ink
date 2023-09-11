@@ -12,19 +12,21 @@
 - Webs:
   - https://use.ink/getting-started/setup/
   - https://github.com/paritytech/cargo-contract
-- Acciones: `cargo-contract <= 3.0.1` es incompatible con `rustc >= 1.70.0` y `cargo-contract = 4.0.0` está en beta:
-  - `rustup install 1.69`
-  - `rustup default 1.69`
-  - `rustup component add rust-src --toolchain 1.69`
-  - `rustup target add wasm32-unknown-unknown --toolchain 1.69`
-  - `cargo install --force --version 3.0.1 cargo-contract`
+- Acciones:
+  - `rustup install 1.72`
+  - `rustup default 1.72`
+  - `rustup component add rust-src --toolchain 1.72`
+  - `rustup target add wasm32-unknown-unknown --toolchain 1.72`
+  - `cargo install --force --version 3.2.0 cargo-contract`
 
 ### Node
 
 - Webs:
   - https://github.com/paritytech/substrate-contracts-node
   - https://github.com/paritytech/substrate-contracts-node/releases
-- Acciones: descargar `substrate-contracts-node-linux.tar.gz`
+- Acciones:
+  - Descargar `substrate-contracts-node-linux.tar.gz`
+  - Colocar `substrate-contracts-node` en una carpeta del PATH del sistema
 
 ---
 
@@ -35,12 +37,12 @@
 | Software                 | Versión                                |
 | ------------------------ | -------------------------------------- |
 | rustup                   | 1.26.0 (5af9b9484 2023-04-05)          |
-| rustc                    | 1.69.0 (84c898d65 2023-04-16)          |
-| cargo                    | 1.69.0 (6e9a83356 2023-04-12)          |
-| cargo-contract           | 3.0.1-unknown-x86_64-unknown-linux-gnu |
-| substrate-contracts-node | 0.30.0-72e68577688                     |
+| rustc                    | 1.72.0 (5680fa18f 2023-08-23)          |
+| cargo                    | 1.72.0 (103a7ff2e 2023-08-15)          |
+| cargo-contract           | 3.2.0-unknown-x86_64-unknown-linux-gnu |
+| substrate-contracts-node | 0.31.0-c8863fe08b7                     |
 
-### Inicialización del proyecto
+### Inicialización del proyecto (clase #1)
 
 ```Bash
 cargo contract new flipper
@@ -59,16 +61,23 @@ git push -u origin master
 
 ---
 
-## Pruebas
-
-### Compilación
+## Ejecución de pruebas
 
 ```Bash
 cargo test --package organization --lib -- organization::tests --nocapture
-cargo contract build --target wasm
 ```
 
-### Ejecución local
+## Compilación
+
+```Bash
+cargo contract build --target wasm --manifest-path contracts/organization/Cargo.toml
+# Resultado en: target/ink/nft/nft.contract
+
+cargo contract build --target wasm --manifest-path contracts/nft/Cargo.toml
+# Resultado en: target/ink/organization/organization.contract
+```
+
+## Ejecución local
 
 - Ejecutar `substrate-contracts-node`
 - Webs:
@@ -108,6 +117,8 @@ Modificar el smart contract para empezar a darle forma a nuestra organización:
 - [x] Votar (sólamente un contribuyente puede votar a otro)
 - [x] Consultar reputación de contribuyente
 
+<br/>
+
 > **Notas:** _para esta etapa del desarrollo se asumen las siguientes condiciones:_
 >
 > - _La "reputación" es la suma de votos que tiene un contribuyente_
@@ -126,6 +137,8 @@ Modificar el smart contract para empezar a darle forma a nuestra organización:
   - Los únicos que pueden votar son los contribuyentes registrados
   - La reputación es privada. Cada contribuyente puede consultar únicamente la propia
 
+<br/>
+
 > **Notas:** _Proyecto renombrado a "Organization", además se asumen las siguientes condiciones:_
 >
 > - _Hasta tener una definición mas completa de la lógica de negocio:_
@@ -143,8 +156,22 @@ Modificar el smart contract para empezar a darle forma a nuestra organización:
 
 ### 📝 Clase 4
 
-- [ ] Crear un contrato PSP34 (Utilizar Templates de OpenBrush) que sirva de certificado de votación
-- [ ] Transferir al contribuyente un NFT que certifique su voto
-- [ ] Definir un trait que represente el comportamiento de votación e implementarlo en el contrato:
+- [x] Crear un contrato PSP34 (Utilizar Templates de OpenBrush) que sirva de certificado de votación
+- [x] Transferir al contribuyente un NFT que certifique su voto
+- [x] Definir un trait que represente el comportamiento de votación e implementarlo en el contrato:
   - Votar
   - Obtener reputación/votos de un contribuyente
+
+<br/>
+
+> **Problema de dependencias:**
+>
+> - Conflicto:
+>   - `subxt-codegen v0.31.0` (paquete no manejado directamente) depende de `rustc >= 1.70`
+>   - `cargo-contract v3.2.0` (paquete nuevo) soporta `rustc > 1.69`
+> - Acciones:
+>   - Pasos de la sección de instalacion de [Ink!](#ink) (actualizado)
+>
+> **Notas:**
+>
+> - Al interactuar con un segundo contrato ya no es posible realizar pruebas unitarias con datos falsos como se estaba haciendo hasta ahora. El archivo `ink_env-4.3.0/src/engine/off_chain/impls.rs` en su función `instantiate_contract` (línea 488) lo define como "no implementado" con el mensaje _"off-chain environment does not support contract instantiation"_, por lo tanto se eliminan todas las pruebas unitarias (quedan en el historial de git).
