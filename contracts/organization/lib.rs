@@ -1,19 +1,19 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
-
+#[cfg_attr(feature = "cargo-clippy", allow(clippy::new_without_default))]
 mod errors;
 mod types;
 mod voting;
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::new_without_default))]
 #[ink::contract]
 mod organization {
+    use ink::prelude::vec::Vec;
     use ink::storage::Mapping;
+
+    use nft::Psp34Ref;
 
     use crate::errors::Error;
     use crate::types::{Contributor, Reputation};
     use crate::voting::VoteTrait;
-
-    use nft::Psp34Ref;
 
     /// Voting event
     #[ink(event)]
@@ -37,6 +37,15 @@ mod organization {
         nft_contract: Psp34Ref,
     }
 
+    fn get_score(reputation: Reputation) -> Reputation {
+        // FIXME: temporary implementation, until the business logic is better defined
+        if reputation < 10 {
+            1
+        } else {
+            2
+        }
+    }
+
     /////////////////////////////////////////////////////////////////////////////////////
 
     impl Organization {
@@ -50,7 +59,7 @@ mod organization {
                 nft_contract: Psp34Ref::new()
                     .code_hash(nft_contract_code_hash)
                     .endowment(0)
-                    .salt_bytes([0x46, 0x55, 0x43, 0x4B]) // 🤷🏼
+                    .salt_bytes(Vec::new())
                     .instantiate(),
             }
         }
@@ -136,10 +145,7 @@ mod organization {
             let emitter = self.contributors.get(emitter_id).unwrap();
             let mut receiver = self.contributors.get(receiver_id).unwrap();
 
-            // FIXME: temporary implementation, until the business logic is better defined
-            let sum = if emitter.reputation < 10 { 1 } else { 2 };
-
-            receiver.reputation += sum;
+            receiver.reputation += get_score(emitter.reputation);
             self.contributors.insert(receiver_id, &receiver); // update
 
             self.env().emit_event(VoteEvent {
@@ -166,20 +172,150 @@ mod organization {
 
     /////////////////////////////////////////////////////////////////////////////////////
 
-    /// End-to-End or integration tests
-    ///
-    /// When running these you need to make sure that you:
-    /// - Compile the tests with the `e2e-tests` feature flag enabled (`--features e2e-tests`)
-    /// - Are running a Substrate node which contains `pallet-contracts` in the background
+    #[cfg(test)]
+    mod unit_tests {
+        use super::*;
+
+        #[test]
+        fn get_score_test() {
+            assert_eq!(get_score(0), 1);
+            assert_eq!(get_score(9), 1);
+            assert_eq!(get_score(10), 2);
+            assert_eq!(get_score(100), 2);
+            assert_eq!(get_score(1000), 2);
+        }
+    }
+
+    //---------------------------------------------------------------------------------//
+
+    #[cfg(test)]
+    mod integration_tests {
+        //
+        // This contract instance a second contract in its constructor,
+        // but off-chain environment does not support contract instantiation,
+        // so it is not possible to make integration tests.
+        //
+    }
+
+    //---------------------------------------------------------------------------------//
+
     #[cfg(all(test, feature = "e2e-tests"))]
     mod e2e_tests {
         use super::*;
-        use ink_e2e::build_message;
+        use ink_e2e::{build_message, Keypair};
 
-        type E2EResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+        type E2EResult = std::result::Result<(), Box<dyn std::error::Error>>;
+
+        pub struct E2EAccount {
+            pub key: Keypair,
+            pub id: AccountId,
+        }
+
+        // Account: alice, bob, charlie, dave, eve, ferdie, one, two
+        macro_rules! get_e2e_account {
+            ($account:ident) => {
+                let $account = E2EAccount {
+                    key: ink_e2e::$account(),
+                    id: AccountId::from(ink_e2e::$account().public_key().0),
+                };
+            };
+        }
+
+        macro_rules! init_e2e_test {
+            ($client:expr, $contract_id:ident, $admin_account:ident, $($account:ident),+) => {
+                get_e2e_account!($admin_account);
+
+                let nft_code_hash = $client
+                    .upload("nft", &$admin_account.key, None)
+                    .await
+                    .expect("nft contract upload failed")
+                    .code_hash;
+
+                let contract_ref = OrganizationRef::new($admin_account.id, nft_code_hash);
+                let $contract_id = $client
+                    .instantiate("organization", &$admin_account.key, contract_ref, 0, None)
+                    .await
+                    .expect("organization contract instantiate failed")
+                    .account_id;
+
+                $( get_e2e_account!($account); )+
+            };
+        }
+
+        //--------------------------------//
 
         #[ink_e2e::test]
-        async fn e2e_test(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+        async fn add_contributor_test(mut client: ink_e2e::Client<C, E>) -> E2EResult {
+            init_e2e_test!(client, contract_id, alice, bob);
+
+            let add_contributor = build_message::<OrganizationRef>(contract_id.clone())
+                .call(|contract| contract.add_contributor(bob.id));
+            let add_contributor_return = client.call(&alice.key, add_contributor, 0, None).await;
+
+            assert!(add_contributor_return.is_ok());
+
+            let get_reputation = build_message::<OrganizationRef>(contract_id.clone())
+                .call(|contract| contract.get_reputation());
+            let get_reputation_return = client
+                .call_dry_run(&bob.key, &get_reputation, 0, None)
+                .await
+                .return_value();
+
+            assert!(matches!(get_reputation_return, Ok(0)));
+
+            Ok(())
+        }
+
+        #[ink_e2e::test]
+        async fn rem_contributor_test(mut client: ink_e2e::Client<C, E>) -> E2EResult {
+            init_e2e_test!(client, contract_id, alice, bob);
+
+            let add_contributor = build_message::<OrganizationRef>(contract_id.clone())
+                .call(|contract| contract.add_contributor(bob.id));
+            let add_contributor_return = client.call(&alice.key, add_contributor, 0, None).await;
+
+            assert!(add_contributor_return.is_ok());
+
+            let rem_contributor = build_message::<OrganizationRef>(contract_id.clone())
+                .call(|contract| contract.rem_contributor(bob.id));
+            let rem_contributor_return = client.call(&alice.key, rem_contributor, 0, None).await;
+
+            assert!(rem_contributor_return.is_ok());
+
+            Ok(())
+        }
+
+        #[ink_e2e::test]
+        async fn submit_vote_test(mut client: ink_e2e::Client<C, E>) -> E2EResult {
+            init_e2e_test!(client, contract_id, alice, bob, dave);
+
+            let add_contributor = build_message::<OrganizationRef>(contract_id.clone())
+                .call(|contract| contract.add_contributor(bob.id));
+            let add_contributor_return = client.call(&alice.key, add_contributor, 0, None).await;
+
+            assert!(add_contributor_return.is_ok());
+
+            let add_contributor = build_message::<OrganizationRef>(contract_id.clone())
+                .call(|contract| contract.add_contributor(dave.id));
+            let add_contributor_return = client.call(&alice.key, add_contributor, 0, None).await;
+
+            assert!(add_contributor_return.is_ok());
+
+            let submit_vote = build_message::<OrganizationRef>(contract_id.clone())
+                .call(|contract| contract.submit_vote(dave.id));
+            let submit_vote_return = client.call(&bob.key, submit_vote, 0, None).await;
+
+            assert!(submit_vote_return.is_ok());
+
+            let get_reputation = build_message::<OrganizationRef>(contract_id.clone())
+                .call(|contract| contract.get_reputation());
+            let get_reputation_return = client
+                .call_dry_run(&dave.key, &get_reputation, 0, None)
+                .await
+                .return_value();
+
+            assert!(matches!(get_reputation_return, Ok(1)));
+
             Ok(())
         }
     }

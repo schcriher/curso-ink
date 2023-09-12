@@ -64,7 +64,7 @@ git push -u origin master
 ## Ejecución de pruebas
 
 ```Bash
-cargo test --package organization --lib -- organization::tests --nocapture
+cargo test --lib --features e2e-tests -- --nocapture
 ```
 
 ## Compilación
@@ -186,4 +186,11 @@ _Clase teórica sobre Chain Extensions, sin cambios en el proyecto._
 
 ### 📝 Clase 6
 
-- [ ] Agregar tests de integración y E2E al código de la clase #4. No hace falta que cubran el 100% del código.
+- [x] Agregar tests de integración y E2E al código de la clase #4. No hace falta que cubran el 100% del código.
+
+<br/>
+
+> **Notas:**
+>
+> - Se agregó una prueba unitaria, no se agregaron pruebas de integración debido a que el contrato principal instancia un segundo contrato y para probar esto es necesario hacerlo on-chain, y por úlitmo se agregaron pruebas end-2-end que testean las cuatro funciones para casos correctos, en las cuales se hizo uso de macros para disminuir la cantidad de líneas de código.
+> - El testeo de casos de error se deja para la entrega final.
