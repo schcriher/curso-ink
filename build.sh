@@ -13,8 +13,10 @@ contracts=(
 
 for contract in "${contracts[@]}"; do
   echo -e "Building ${contract}\n"
-  cargo contract build --target wasm --manifest-path contracts/${contract}/Cargo.toml
-  mv --force target/ink/${contract}/${contract}.contract target
+  # build
+  cargo contract build --target wasm --manifest-path contracts/${contract}/Cargo.toml --release
+  # copy contract
+  cp --force target/ink/${contract}/${contract}.contract target
   echo -e "\n"
 done
 
