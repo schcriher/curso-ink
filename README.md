@@ -19,55 +19,35 @@
   - `rustup target add wasm32-unknown-unknown --toolchain 1.72`
   - `cargo install --force --version 3.2.0 cargo-contract`
 
-### Node
+### Blockchain Node
 
-- Webs:
-  - https://github.com/paritytech/substrate-contracts-node
-  - https://github.com/paritytech/substrate-contracts-node/releases
+- Web: https://github.com/paritytech/substrate-contracts-node/releases
 - Acciones:
   - Descargar `substrate-contracts-node-linux.tar.gz`
   - Colocar `substrate-contracts-node` en una carpeta del PATH del sistema
 
----
-
-## Proyecto
-
-### Software utilizado:
+### Resumen
 
 | Software                 | Versión                                |
 | ------------------------ | -------------------------------------- |
+| OS                       | Debian Testing (13 "trixie")           |
 | rustup                   | 1.26.0 (5af9b9484 2023-04-05)          |
 | rustc                    | 1.72.0 (5680fa18f 2023-08-23)          |
 | cargo                    | 1.72.0 (103a7ff2e 2023-08-15)          |
 | cargo-contract           | 3.2.0-unknown-x86_64-unknown-linux-gnu |
 | substrate-contracts-node | 0.31.0-c8863fe08b7                     |
 
-### Inicialización del proyecto (clase #1)
-
-```Bash
-cargo contract new flipper
-cd flipper
-
-cargo test --package flipper --lib -- flipper::tests --nocapture
-cargo contract build --target wasm
-
-git init
-git add .
-git commit -m "class #1"
-git branch -M master
-git remote add origin git@github.com:schcriher/curso-ink.git
-git push -u origin master
-```
-
 ---
 
-## Ejecución de pruebas
+## Acciones de desarrollo
+
+### Ejecución de pruebas
 
 ```Bash
 cargo test --lib --features e2e-tests -- --nocapture
 ```
 
-## Compilación
+### Compilación
 
 ```Bash
 cargo contract build --target wasm --manifest-path contracts/organization/Cargo.toml
@@ -77,7 +57,7 @@ cargo contract build --target wasm --manifest-path contracts/nft/Cargo.toml
 # Resultado en: target/ink/organization/organization.contract
 ```
 
-## Ejecución local
+### Ejecución local
 
 - Ejecutar `substrate-contracts-node`
 - Webs:
@@ -86,7 +66,7 @@ cargo contract build --target wasm --manifest-path contracts/nft/Cargo.toml
 
 ---
 
-## Avance del proyecto
+## Avances del proyecto
 
 **Objetivo:** Armar una organización que premie a sus contribuyentes según su reputación.
 
@@ -99,6 +79,21 @@ cargo contract build --target wasm --manifest-path contracts/nft/Cargo.toml
 - [x] Generar un repositorio git personal para el seguimiento del trabajo práctico
 - [x] Subir el código del contrato generado
 - [x] Compartir el repositorio en el canal de discord para el trackeo del mismo
+
+> ```Bash
+> cargo contract new flipper
+> cd flipper
+>
+> cargo test --package flipper --lib -- flipper::tests --nocapture
+> cargo contract build --target wasm
+>
+> git init
+> git add .
+> git commit -m "class #1"
+> git branch -M master
+> git remote add origin git@github.com:schcriher/curso-ink.git
+> git push -u origin master
+> ```
 
 <br/>
 
@@ -194,3 +189,42 @@ _Clase teórica sobre Chain Extensions, sin cambios en el proyecto._
 >
 > - Se agregó una prueba unitaria, no se agregaron pruebas de integración debido a que el contrato principal instancia un segundo contrato y para probar esto es necesario hacerlo on-chain, y por úlitmo se agregaron pruebas end-2-end que testean las cuatro funciones para casos correctos, en las cuales se hizo uso de macros para disminuir la cantidad de líneas de código.
 > - El testeo de casos de error se deja para la entrega final.
+
+<br/>
+
+### 📝 Clase 7
+
+**Enunciado final:** El objetivo del trabajo práctico es crear una **plataforma de gestión de reputación** según las contribuciones realizadas a una organización.
+
+**Reglas:**
+
+- **Organización**
+
+  - Una **organización** tiene miembros.
+  - Los miembros tienen roles: **Admin** o **Contributor**.
+  - Los **contributors** participan haciendo **aportes off-chain**.
+  - Los aportes off-chain se **valorizarán** mediante votos on-chain entre contributors.
+  - La organización, **mediante su Admin**, abrirá **rondas de votación con una duración determinada que podrá variar entre las diferentes rondas**.
+  - Al momento de crear la ronda de votación, el Admin deberá indicar:
+    - **el monto de fondos a repartir** entre los contributors.
+    - **la cantidad de votos** que podrá efectuar cada uno de ellos.
+  - **Los fondos deberán ser cargados por el Admin.**
+
+- **Votación**
+
+  - Los contributors podrán votar de forma **positiva** o **negativa** a otros contributors.
+  - Estos votos **impactarán en el valor de reputación** del contributor votado.
+  - **El valor de reputación de un contributor nunca podrá ser menor a 1**.
+  - El poder de voto de cada contributor será **proporcional a su valor de reputación**. _La fórmula quedará a criterio de cada uno_.
+    - Ejemplo: f(member_pts, target_pts, value) = target_pts + value \* sqrroot(member_pts)
+    - Value = +PTS o -PTS
+
+- **Premiación**
+  - Al finalizar la ronda de votación, **los fondos se repartirán entre los contributors en base a su valor de reputación** a partir de una transacción ejecutada por el Admin.
+  - Luego de que se repartan los fondos, **los valores de reputación se resetearán**.
+  - Se **entregarán badges (NFTs)** a los 3 contributors con mayor valor de reputación (Gold, Silver and Bronze).
+
+**Entregable:**
+
+- Se deberá presentar un repositorio de código con los contratos.
+- El README del repo deberá contener la explicación de la solución.
