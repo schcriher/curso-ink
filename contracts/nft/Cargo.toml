@@ -8,7 +8,7 @@ repository = "https://github.com/schcriher/curso-ink"
 rust-version = "1.72"
 
 [dependencies]
-ink = { version = "4.2.1", default-features = false }
+ink = { version = "4.3.0", default-features = false }
 scale = { version = "3", default-features = false, features = ["derive"], package = "parity-scale-codec" }
 scale-info = { version = "2.6", default-features = false, features = ["derive"], optional = true }
 openbrush = { version = "4.0.0-beta", default-features = false, features = ["psp34"], git = "https://github.com/Brushfam/openbrush-contracts" }

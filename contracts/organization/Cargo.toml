@@ -8,13 +8,13 @@ repository = "https://github.com/schcriher/curso-ink"
 rust-version = "1.72"
 
 [dependencies]
-ink = { version = "4.2.0", default-features = false }
+ink = { version = "4.3.0", default-features = false }
 scale = { version = "3", default-features = false, features = ["derive"], package = "parity-scale-codec" }
 scale-info = { version = "2.6", default-features = false, features = ["derive"], optional = true }
 nft = { path = "../nft", default-features = false, features = ["ink-as-dependency"] }
 
 [dev-dependencies]
-ink_e2e = "4.2.0"
+ink_e2e = "4.3.0"
 
 [lib]
 path = "lib.rs"
