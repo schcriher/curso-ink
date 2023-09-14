@@ -1,4 +1,3 @@
-use crate::organization::Organization;
 use scale::{Decode, Encode};
 
 /// Contributor reputation
@@ -16,5 +15,4 @@ pub struct Contributor {
 }
 
 /// Wallet identifier
-pub type AccountId =
-    <<Organization as ::ink::env::ContractEnv>::Env as ::ink::env::Environment>::AccountId;
+pub type AccountId = ink::primitives::AccountId;
