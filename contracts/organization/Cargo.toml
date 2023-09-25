@@ -29,3 +29,9 @@ std = [
 ]
 ink-as-dependency = []
 e2e-tests = []
+
+[profile.release]
+# ERROR: An unexpected panic function import was found in the contract Wasm.
+# This typically goes back to a known bug in the Rust compiler:
+# https://github.com/rust-lang/rust/issues/78744
+overflow-checks = false

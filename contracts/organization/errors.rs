@@ -1,6 +1,6 @@
 use scale::{Decode, Encode};
 
-use crate::types::VotesNumber;
+use crate::types::{AccountId, Balance, VotesNumber};
 
 /// Possible erroneous results
 #[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
@@ -16,7 +16,12 @@ pub enum Error {
     CannotVoteItself,
     YouAreNotContributor,
 
+    InvalidRoundParameter,
+    IsOneActiveRound,
     IsNoActiveRound,
+    NotYetFinishedRound,
+    TransferFailed(AccountId, Balance),
+
     ExceedsVoteLimit(VotesNumber),
     ExceedsYourVoteLimit(VotesNumber),
 

@@ -6,8 +6,10 @@ mod voting;
 
 #[ink::contract]
 mod organization {
-    use ink::prelude::vec::Vec;
-    use ink::storage::Mapping;
+    use ink::prelude::{string::String, vec::Vec};
+    use ink::storage::{Lazy, Mapping};
+
+    use scale::alloc::borrow::ToOwned;
 
     use nft::Psp34Ref;
 
@@ -26,7 +28,21 @@ mod organization {
         #[ink(topic)]
         to: AccountId,
 
+        #[ink(topic)]
+        round_id: RoundId,
+
         value: VotesNumber,
+    }
+
+    /// New round event
+    #[ink(event)]
+    pub struct NewRoundEvent {
+        #[ink(topic)]
+        round_id: RoundId,
+
+        value: Balance,
+        finish_at: Timestamp,
+        max_votes: VotesNumber,
     }
 
     #[ink(storage)]
@@ -43,6 +59,9 @@ mod organization {
 
         /// Map with all contributors and their current reputation
         contributors: Mapping<AccountId, Contributor>,
+
+        /// List of all contributors
+        contributors_list: Lazy<Vec<AccountId>>,
 
         /// Reference to the NFT contract, which is the proof of vote
         nft_ref: Psp34Ref,
@@ -106,13 +125,16 @@ mod organization {
             let rounds = Mapping::default();
             let mut members = Mapping::default();
             let contributors = Mapping::default();
+            let mut contributors_list = Lazy::new();
 
+            contributors_list.set(&Vec::new());
             members.insert(administrator_id, &Role::Admin);
 
             Self {
                 rounds,
                 members,
                 contributors,
+                contributors_list,
                 current_round: 0,
                 nft_ref: Psp34Ref::new()
                     .code_hash(nft_code_hash)
@@ -144,8 +166,18 @@ mod organization {
 
             self.members.insert(contributor_id, &Role::Contributor);
 
-            self.contributors
-                .insert(contributor_id, &Contributor::default());
+            self.contributors.insert(
+                contributor_id,
+                &Contributor {
+                    round_id: 0,
+                    reputation: 1,
+                    votes_submitted: 0,
+                },
+            );
+
+            let mut list = self.contributors_list.get().unwrap();
+            list.push(contributor_id);
+            self.contributors_list.set(&list);
 
             Ok(())
         }
@@ -166,6 +198,139 @@ mod organization {
 
             self.members.remove(contributor_id);
             self.contributors.remove(contributor_id);
+
+            let mut list = self.contributors_list.get().unwrap();
+            list.retain(|x| *x != contributor_id);
+            self.contributors_list.set(&list);
+
+            Ok(())
+        }
+
+        /// Administrative function: adds a new round of distribution
+        #[ink(message)]
+        pub fn open_round(
+            &mut self,
+            name: String,
+            value: Balance,
+            finish_at: Timestamp,
+            max_votes: VotesNumber,
+        ) -> Result<(), Error> {
+            let caller_id = self.env().caller();
+            let caller_member = self.members.get(caller_id);
+
+            if caller_member.is_none() || caller_member.unwrap() != Role::Admin {
+                return Err(Error::AdministrativeFunction);
+            }
+
+            if let Some(round) = self.rounds.get(self.current_round) {
+                if !round.is_finished {
+                    return Err(Error::IsOneActiveRound);
+                }
+            }
+
+            // TODO: A minimum time could be established
+
+            if finish_at < self.env().block_timestamp() {
+                return Err(Error::InvalidRoundParameter);
+            }
+
+            // TODO: value of the round must be greater than the contract funds
+
+            let round = Round {
+                name,
+                value,
+                finish_at,
+                max_votes,
+                is_finished: false,
+            };
+            self.current_round += 1;
+            self.rounds.insert(self.current_round, &round);
+
+            self.env().emit_event(NewRoundEvent {
+                round_id: self.current_round,
+                value,
+                finish_at,
+                max_votes,
+            });
+
+            Ok(())
+        }
+
+        /// Administrative function: distributing funds to contributors
+        #[ink(message)]
+        pub fn close_round(&mut self) -> Result<(), Error> {
+            let caller_id = self.env().caller();
+            let caller_member = self.members.get(caller_id);
+
+            if caller_member.is_none() || caller_member.unwrap() != Role::Admin {
+                return Err(Error::AdministrativeFunction);
+            }
+
+            let round = self.rounds.get(self.current_round);
+            if round.is_none() {
+                return Err(Error::IsNoActiveRound);
+            }
+
+            let mut round = round.unwrap(); // unwrap is safe here
+
+            if round.is_finished {
+                return Err(Error::IsNoActiveRound);
+            }
+            if round.finish_at > self.env().block_timestamp() {
+                return Err(Error::NotYetFinishedRound);
+            }
+
+            let mut total_reputation = 0;
+            let mut contributors = Vec::new();
+
+            for contributor_id in self.contributors_list.get().unwrap().iter() {
+                let contributor = self.contributors.get(contributor_id).unwrap();
+                total_reputation += contributor.reputation;
+                contributors.push((contributor_id.to_owned(), contributor.reputation));
+            }
+
+            for contributor in contributors.iter() {
+                let amount = round
+                    .value
+                    .checked_mul(contributor.1 as u128)
+                    .unwrap_or(0)
+                    .checked_div(total_reputation as u128)
+                    .unwrap_or(0);
+
+                self.env()
+                    .transfer(contributor.0, amount)
+                    .map_err(|_| Error::TransferFailed(contributor.0, amount))?;
+            }
+
+            contributors.sort_by(|a, b| a.1.cmp(&b.1));
+
+            ink::env::debug_println!("{:?}", contributors); ////////////////////////////////// XXX
+
+            // FIXME: NFTs must be of three types
+
+            // First contributor
+            if let Some(contributor) = contributors.pop() {
+                self.nft_ref
+                    .mint_to(contributor.0)
+                    .map_err(|_| Error::NftNotSent)?;
+            }
+
+            // Second contributor
+            if let Some(contributor) = contributors.pop() {
+                self.nft_ref
+                    .mint_to(contributor.0)
+                    .map_err(|_| Error::NftNotSent)?;
+            }
+
+            // Third contributor
+            if let Some(contributor) = contributors.pop() {
+                self.nft_ref
+                    .mint_to(contributor.0)
+                    .map_err(|_| Error::NftNotSent)?;
+            }
+
+            round.is_finished = true;
+            self.rounds.insert(self.current_round, &round);
 
             Ok(())
         }
@@ -194,7 +359,7 @@ mod organization {
             }
 
             let round = self.rounds.get(self.current_round);
-            if round.is_none() || round.clone().unwrap().finish < self.env().block_timestamp() {
+            if round.is_none() || round.clone().unwrap().finish_at < self.env().block_timestamp() {
                 return Err(Error::IsNoActiveRound);
             }
 
@@ -232,6 +397,7 @@ mod organization {
                 from: emitter_id,
                 to: receiver_id,
                 value: vote.value,
+                round_id: self.current_round,
             });
 
             Ok(())
@@ -248,7 +414,7 @@ mod organization {
             }
 
             let round = self.rounds.get(self.current_round);
-            if round.is_none() || round.clone().unwrap().finish < self.env().block_timestamp() {
+            if round.is_none() || round.clone().unwrap().finish_at < self.env().block_timestamp() {
                 return Err(Error::IsNoActiveRound);
             }
 
