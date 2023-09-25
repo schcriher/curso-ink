@@ -222,7 +222,7 @@ mod organization {
         }
 
         macro_rules! init_e2e_test {
-            ($client:expr, $contract_id:ident, $admin_account:ident, $($account:ident),+) => {
+            ($client:expr, $contract_id:ident, $admin_account:ident $(, $account:ident)*) => {
                 get_e2e_account!($admin_account);
 
                 let nft_code_hash = $client
@@ -238,7 +238,7 @@ mod organization {
                     .expect("organization contract instantiate failed")
                     .account_id;
 
-                $( get_e2e_account!($account); )+
+                $( get_e2e_account!($account); )*
             };
         }
 
