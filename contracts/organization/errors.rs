@@ -1,15 +1,24 @@
 use scale::{Decode, Encode};
 
+use crate::types::VotesNumber;
+
 /// Possible erroneous results
 #[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 pub enum Error {
     AdministrativeFunction,
     AdminCannotBeContributor,
-    AdminCannotSubmitOrReceivedVote,
-    ContributorAlreadyExists,
-    ContributorNotExist,
+
+    MemberAlreadyExists,
+    MemberNotExist,
+
+    OnlyContributorCanVote,
     CannotVoteItself,
     YouAreNotContributor,
-    NftNotSent, // FIXME: NftNotSent(String)
+
+    IsNoActiveRound,
+    ExceedsVoteLimit(VotesNumber),
+    ExceedsYourVoteLimit(VotesNumber),
+
+    NftNotSent,
 }

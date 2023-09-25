@@ -1,18 +1,75 @@
+use ink::env::{DefaultEnvironment, Environment};
 use scale::{Decode, Encode};
 
-/// Contributor reputation
+pub type AccountId = <DefaultEnvironment as Environment>::AccountId;
+pub type Timestamp = <DefaultEnvironment as Environment>::Timestamp;
+pub type Balance = <DefaultEnvironment as Environment>::Balance;
+pub type String = ink::prelude::string::String;
+
+/// Identifier of a round, sequential numbers, starting at one
+pub type RoundId = u32;
+
+/// Contributor reputation, starting at one
 pub type Reputation = u32;
 
-/// Contributor information
-#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
+/// Number of votes
+pub type VotesNumber = u8;
+
+/// Member role
+#[derive(Debug, PartialEq, Eq, Clone, Copy, scale::Encode, scale::Decode)]
+#[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+)]
+pub enum Role {
+    Admin,
+    Contributor,
+}
+
+/// Information on a contributor's reputation in a specific round
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Encode, Decode, Default)]
 #[cfg_attr(
     feature = "std",
     derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
 )]
 pub struct Contributor {
-    /// Reputation of the contributor (for now: sum of votes received)
+    pub round_id: RoundId,
     pub reputation: Reputation,
+    pub votes_submitted: VotesNumber,
 }
 
-/// Wallet identifier
-pub type AccountId = ink::primitives::AccountId;
+/// Voting sign, positive adds, negative subtracts,
+/// the final sum or subtraction depends on the reputations of the sender and the receiver of votes
+#[derive(Debug, PartialEq, Eq, Clone, Copy, scale::Encode, scale::Decode)]
+#[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+)]
+pub enum VoteSign {
+    Positive,
+    Negative,
+}
+
+/// Information on the vote to emit
+#[derive(Debug, PartialEq, Eq, Clone, Copy, scale::Encode, scale::Decode)]
+#[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+)]
+pub struct Vote {
+    pub sign: VoteSign,
+    pub value: VotesNumber,
+}
+
+/// Information on a round
+#[derive(Debug, PartialEq, Eq, Clone, scale::Encode, scale::Decode)]
+#[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+)]
+pub struct Round {
+    pub name: String,
+    pub value: Balance,
+    pub finish: Timestamp,
+    pub max_votes: VotesNumber,
+}
