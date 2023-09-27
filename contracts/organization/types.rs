@@ -27,13 +27,12 @@ pub enum Role {
 }
 
 /// Information on a contributor's reputation in a specific round.
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Encode, Decode, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Encode, Decode)]
 #[cfg_attr(
     feature = "std",
     derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
 )]
 pub struct Contributor {
-    pub round_id: RoundId,
     pub reputation: Reputation,
     pub votes_submitted: VotesNumber,
 }

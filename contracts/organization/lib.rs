@@ -155,8 +155,13 @@ mod organization {
             self.members.insert(contributor_id, &role);
 
             if role == Role::Contributor {
-                self.contributors
-                    .insert(contributor_id, &Contributor::default());
+                self.contributors.insert(
+                    contributor_id,
+                    &Contributor {
+                        reputation: 1,
+                        votes_submitted: 0,
+                    },
+                );
 
                 let mut list = self.contributors_list.get().unwrap();
                 list.push(contributor_id);
@@ -172,14 +177,6 @@ mod organization {
             let mut list = self.contributors_list.get().unwrap();
             list.retain(|x| *x != contributor_id);
             self.contributors_list.set(&list);
-        }
-
-        fn contributor_reset_if_necessary(&self, mut contributor: Contributor) {
-            if contributor.round_id != self.current_round_id {
-                contributor.round_id = self.current_round_id;
-                contributor.reputation = 1;
-                contributor.votes_submitted = 0;
-            }
         }
 
         fn is_caller_admin(&self) -> Result<()> {
@@ -349,16 +346,16 @@ mod organization {
             let mut contributors = Vec::new();
 
             for contributor_id in self.contributors_list.get().unwrap().iter() {
-                let contributor = self.contributors.get(contributor_id).unwrap();
-
-                // if he did not cast a vote or a vote was cast for him,
-                // he may have the data from the previous round.
-                self.contributor_reset_if_necessary(contributor);
-                // NOTE: If no votes were cast, the funds are distributed equally.
+                let mut contributor = self.contributors.get(contributor_id).unwrap();
 
                 total_votes += contributor.votes_submitted;
                 total_reputation += contributor.reputation;
                 contributors.push((contributor_id.to_owned(), contributor.reputation));
+
+                // Reset
+                contributor.reputation = 1;
+                contributor.votes_submitted = 0;
+                self.contributors.insert(contributor_id, &contributor);
             }
 
             // unwrap is safe here: total_reputation != 0
@@ -458,10 +455,6 @@ mod organization {
             if vote.value > round.max_votes {
                 return Err(Error::ExceedsVoteLimit(round.max_votes));
             }
-
-            // for efficiency reasons, this check is performed here, instead of in `close_round`
-            self.contributor_reset_if_necessary(emitter);
-            self.contributor_reset_if_necessary(receiver);
 
             if emitter.votes_submitted + vote.value > round.max_votes {
                 return Err(Error::ExceedsYourVoteLimit(
@@ -598,7 +591,7 @@ mod organization {
             };
         }
 
-        macro_rules! init_e2e_test {
+        macro_rules! init_e2e {
             ($client:expr, $contract_id:ident, $admin_account:ident $(, $account:ident)*) => {
                 get_e2e_account!($admin_account);
 
@@ -608,7 +601,7 @@ mod organization {
                     .expect("nft contract upload failed")
                     .code_hash;
 
-                let min_elapsed_hours = 24; // 1 day
+                let min_elapsed_hours = 1;
                 let contract_ref = OrganizationRef::new($admin_account.id, nft_code_hash, min_elapsed_hours);
                 let $contract_id = $client
                     .instantiate("organization", &$admin_account.key, contract_ref, 0, None)
@@ -624,7 +617,7 @@ mod organization {
 
         #[ink_e2e::test]
         async fn add_contributor_test(mut client: ink_e2e::Client<C, E>) -> E2EResult {
-            init_e2e_test!(client, contract_id, alice, bob);
+            init_e2e!(client, contract_id, alice, bob);
 
             let add_contributor = build_message::<OrganizationRef>(contract_id.clone())
                 .call(|contract| contract.add_contributor(bob.id));
@@ -637,7 +630,7 @@ mod organization {
 
         #[ink_e2e::test]
         async fn rem_contributor_test(mut client: ink_e2e::Client<C, E>) -> E2EResult {
-            init_e2e_test!(client, contract_id, alice, bob);
+            init_e2e!(client, contract_id, alice, bob);
 
             let add_contributor = build_message::<OrganizationRef>(contract_id.clone())
                 .call(|contract| contract.add_contributor(bob.id));
@@ -653,58 +646,5 @@ mod organization {
 
             Ok(())
         }
-
-        // #[ink_e2e::test]
-        // async fn submit_vote_test(mut client: ink_e2e::Client<C, E>) -> E2EResult {
-        //     init_e2e_test!(client, contract_id, alice, bob, dave);
-
-        //     let add_contributor = build_message::<OrganizationRef>(contract_id.clone())
-        //         .call(|contract| contract.add_contributor(bob.id));
-        //     let add_contributor_return = client.call(&alice.key, add_contributor, 0, None).await;
-
-        //     assert!(add_contributor_return.is_ok());
-
-        //     let add_contributor = build_message::<OrganizationRef>(contract_id.clone())
-        //         .call(|contract| contract.add_contributor(dave.id));
-        //     let add_contributor_return = client.call(&alice.key, add_contributor, 0, None).await;
-
-        //     assert!(add_contributor_return.is_ok());
-
-        //     let submit_vote = build_message::<OrganizationRef>(contract_id.clone())
-        //         .call(|contract| contract.submit_vote(dave.id));
-        //     let submit_vote_return = client.call(&bob.key, submit_vote, 0, None).await;
-
-        //     assert!(submit_vote_return.is_ok());
-
-        //     let get_reputation = build_message::<OrganizationRef>(contract_id.clone())
-        //         .call(|contract| contract.get_reputation());
-        //     let get_reputation_return = client
-        //         .call_dry_run(&dave.key, &get_reputation, 0, None)
-        //         .await
-        //         .return_value();
-
-        //     ///////////////////////////////////////////////////////////////////////////
-        //     let emitted_events = ink::env::test::recorded_events().collect::<Vec<_>>();
-        //     assert_eq!(emitted_events.len(), 2);
-        //     // Check first transfer event related to ERC-20 instantiation.
-        //     assert_transfer_event(
-        //         &emitted_events[0],
-        //         None,
-        //         Some(AccountId::from([0x01; 32])),
-        //         100,
-        //     );
-        //     // Check the second transfer event relating to the actual trasfer.
-        //     assert_transfer_event(
-        //         &emitted_events[1],
-        //         Some(AccountId::from([0x01; 32])),
-        //         Some(AccountId::from([0x02; 32])),
-        //         10,
-        //     );
-        //     ///////////////////////////////////////////////////////////////////////////
-
-        //     assert!(matches!(get_reputation_return, Ok(1)));
-
-        //     Ok(())
-        // }
     }
 }
