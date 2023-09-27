@@ -1,4 +1,59 @@
-# DAO: Decentralized Autonomous Organization
+# AnsehenDAO:
+
+**AnsehenDAO** (_"ánsiindao"_) es una plataforma de gestión de reputación que busca premiar las contribuciones que sus miembros realizan a la organización. Los fondos se reparten a los miembros en base a su reputación en cada ronda de reparto.
+
+El nombre **AnsehenDAO** viene de la unión de **Ansehen** y **DAO**, donde **Ansehen** significa "reputación" en alemán y **DAO**, del inglés Decentralized Autonomous Organization, significa "organización autónoma descentralizada".
+
+## Funcionamiento
+
+Los miembros "contribuyentes" aportan distintos tipos de acciones off-chain a la organización, ya sea trabajo físico o intelectual; mientras que la organización, a través de sus miembros "administradores", realizan distintas rondas de votación con fondos que la organización consigue para repartir (on-chain) entre sus contribuyentes en base a la reputación de cada contribuyente en cada ronda, esta reputación es calculada a partir de los votos que cada contribuyente realiza en las rondas. Los contribuyentes con mayor reputación tendrán a su vez mayor poder de voto. Al finalizar cada ronda se entregan certificados NFT a los 3 contribuyentes con mayor reputación y se reinicializan los valores de reputación y cantidad de votos emitidos de cada contribuyente.
+
+## Estructura
+
+### Consideraciones de diseño
+
+- Se emiten tres tipos de eventos, uno cuando se crea una ronda de votación (`NewRound`), uno cuando se cierra la ronda de votación (`CloseRound`) y otro cuando se emite un voto (`VoteCast`).
+- Los votos se pueden emitir pero no eliminar, para evitar que una vez emitidos los votos, algún contribuyente elimine los suyos y con mayor reputación cambie su votación.
+- El `storage` del contrato tiene los siguientes campos:
+
+  - `rounds`: es un mapping que almacena todas las rondas creadas, recuperables con su ID que es un número creciente, comenzando por 1 siendo la última ronda creada la almacenada en el campo `current_round_id`.
+  - `current_round_id`: ID de la última ronda creada. Se considera un sistema con una sola ronda activa a la vez
+
+  - `min_elapsed_milliseconds`: tiempo mínimo para que una ronda quede abierta.
+
+  - `members`: un mapping que almacena los id de todos los miembros y su rol (`admin`, `contributor`).
+
+  - `contributors`: un mapping que almacena los id de todos los contribuyentes y su información actual, la cual consta de la reputación y los votos emitidos en la ronda actual.
+
+  - `contributors_list`: lista con todos los id de los contribuyentes para poder iterar sobre ellos al momento de hacer la distribución de los fondos y el reseteo de los valores de reputación y votos emitidos. Este campo fue marcado como `Lazy` para evitar que se cargue con cada llamada al contrato, ya que es un vector.
+
+  - `nft_ref`: una referencia al contrato de los NFT, recompensa para los tres contribuyentes con mayor reputación.
+
+- El cálculo de la reputación de un contribuyente se realiza con la ecuación propuesta en el enunciado. Con la modificación de que el cálculo de la raíz cuadrada de la reputación del que emite el voto se realiza con una fórmula rápida que da un resultado aproximado (archivo `tools.rs`).
+
+- Se pueden agregar mas de un administrador a la organización, sin embargo al eliminarlos el que elimina no puede auto-eliminarse para evitar que se quede sin administradores la organización.
+
+- Se pueden agregar y eliminar contribuyentes a la organización, sin embargo no debe estar activa una ronda para evitar manipulaciones mientras se vota.
+
+- Una ronda puede ser abierta solo si no hay una ya abierta no finalizada y el contrato tiene suficientes fondos (según el valor pasado por parámetro) y que quede al menos la cantidad mínima de existencia.
+
+- Al cerrar una ronda se calculan las cantidades que le corresponde a cada contribuyente, se resetean su valores y luego se envían los NFT a los 3 contribuyentes con mayor reputación, esta se realiza ordenando una lista temporal que se crea y se van sacando del final (`.pop()`) en caso de no haber contribuyentes simplemente no se envían los NFTs.
+
+- Se tienen métodos de consulta para saber el tiempo mínimo para una ronda, la dirección del contrato para hacer aportes y el tiempo (timestamp) actual.
+
+- Por otro lado se implementa el trait `VoteTrait` el cual permite emitir un voto y consultar la reputación.
+
+- Todos los mensajes (transacciones) devuelven un `Result` con el valor correspondiente o nada, o un error de los definidos en el archivo de errores, en principio no debería generar ningún panic.
+
+### Mejoras futuras
+
+- Las pruebas de integración deberían ampliarse para cubrir todos los casos válidos y todos los casos de error, ya se que comprueban muchas situaciones.
+
+- Los NFT podrían almacenar mas información sobre la ronda, reputación, cantidad de votantes, etc.
+
+- Se podría crear una UI para interactuar con la organización de forma mas sencilla, ya que es uno de los mayores obstáculos en el mundo de la blockchain.
+
+---
 
 ## Instalación del entorno de derarrollo (GNU/Linux)
 
@@ -16,8 +71,10 @@
   - `rustup install 1.72`
   - `rustup default 1.72`
   - `rustup component add rust-src --toolchain 1.72`
+  - `rustup component add clippy --toolchain 1.72`
   - `rustup target add wasm32-unknown-unknown --toolchain 1.72`
   - `cargo install --force --version 3.2.0 cargo-contract`
+  - `cargo check`
 
 ### Blockchain Node
 
