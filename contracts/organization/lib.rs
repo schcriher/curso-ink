@@ -202,6 +202,19 @@ mod organization {
             Ok(())
         }
 
+        fn send_nft(
+            &mut self,
+            category: &str,
+            contributor: Option<(AccountId, Reputation)>,
+        ) -> Result<()> {
+            if let Some(contributor) = contributor {
+                self.nft_ref
+                    .mint_to(category.to_owned(), contributor.0)
+                    .map_err(|_| Error::NftNotSent)?;
+            }
+            Ok(())
+        }
+
         // ------------------------------------------------------------------------------
 
         /// Administrative function: adding a administrator.
@@ -363,28 +376,14 @@ mod organization {
 
             contributors.sort_by(|a, b| a.1.cmp(&b.1)); // sorted from lowest to highest by reputation
 
-            // FIXME: NFTs must be of three types
+            // The last element is the most reputable
+            self.send_nft("Gold", contributors.pop())?;
 
-            // The last element is the most reputable - Gold NFT
-            if let Some(contributor) = contributors.pop() {
-                self.nft_ref
-                    .mint_to(contributor.0)
-                    .map_err(|_| Error::NftNotSent)?;
-            }
+            // The second to last element is the second in reputation
+            self.send_nft("Silver", contributors.pop())?;
 
-            // The second to last element is the second in reputation - Silver NFT
-            if let Some(contributor) = contributors.pop() {
-                self.nft_ref
-                    .mint_to(contributor.0)
-                    .map_err(|_| Error::NftNotSent)?;
-            }
-
-            // The third to last element is the third in reputation - Bronze NFT
-            if let Some(contributor) = contributors.pop() {
-                self.nft_ref
-                    .mint_to(contributor.0)
-                    .map_err(|_| Error::NftNotSent)?;
-            }
+            // The third to last element is the third in reputation
+            self.send_nft("Bronze", contributors.pop())?;
 
             round.is_finished = true;
             self.rounds.insert(self.current_round_id, &round);
