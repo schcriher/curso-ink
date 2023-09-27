@@ -1,0 +1,1393 @@
+{
+  "source": {
+    "hash": "0xfc4d3f404b01cbe430c912dc46feddaf1c8faa2954150f84152c1a4d515f55da",
+    "language": "ink! 4.3.0",
+    "compiler": "rustc 1.72.0",
+    "build_info": {
+      "build_mode": "Release",
+      "cargo_contract_version": "3.2.0",
+      "rust_toolchain": "stable-x86_64-unknown-linux-gnu",
+      "wasm_opt_settings": {
+        "keep_debug_symbols": false,
+        "optimization_passes": "Z"
+      }
+    }
+  },
+  "contract": {
+    "name": "organization",
+    "version": "0.1.0",
+    "authors": [
+      "Schmidt Cristian Hernán <schcriher@gmail.com>"
+    ],
+    "repository": "https://github.com/schcriher/curso-ink",
+    "license": "GPL-3.0-or-later"
+  },
+  "spec": {
+    "constructors": [
+      {
+        "args": [
+          {
+            "label": "administrator_id",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 7
+            }
+          },
+          {
+            "label": "nft_code_hash",
+            "type": {
+              "displayName": [
+                "Hash"
+              ],
+              "type": 9
+            }
+          },
+          {
+            "label": "min_elapsed_hours",
+            "type": {
+              "displayName": [
+                "u32"
+              ],
+              "type": 5
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          "The constructor initializes the organization,",
+          "including the administrator as a Admin member and instantiates the nft contract."
+        ],
+        "label": "new",
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink_primitives",
+            "ConstructorResult"
+          ],
+          "type": 10
+        },
+        "selector": "0x9bae9d5e"
+      }
+    ],
+    "docs": [],
+    "environment": {
+      "accountId": {
+        "displayName": [
+          "AccountId"
+        ],
+        "type": 7
+      },
+      "balance": {
+        "displayName": [
+          "Balance"
+        ],
+        "type": 1
+      },
+      "blockNumber": {
+        "displayName": [
+          "BlockNumber"
+        ],
+        "type": 5
+      },
+      "chainExtension": {
+        "displayName": [
+          "ChainExtension"
+        ],
+        "type": 22
+      },
+      "hash": {
+        "displayName": [
+          "Hash"
+        ],
+        "type": 9
+      },
+      "maxEventTopics": 4,
+      "timestamp": {
+        "displayName": [
+          "Timestamp"
+        ],
+        "type": 3
+      }
+    },
+    "events": [
+      {
+        "args": [
+          {
+            "docs": [],
+            "indexed": true,
+            "label": "round_id",
+            "type": {
+              "displayName": [
+                "RoundId"
+              ],
+              "type": 5
+            }
+          },
+          {
+            "docs": [],
+            "indexed": true,
+            "label": "from",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 7
+            }
+          },
+          {
+            "docs": [],
+            "indexed": true,
+            "label": "to",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 7
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "value",
+            "type": {
+              "displayName": [
+                "VotesNumber"
+              ],
+              "type": 2
+            }
+          }
+        ],
+        "docs": [
+          "Vote cast event."
+        ],
+        "label": "VoteCast"
+      },
+      {
+        "args": [
+          {
+            "docs": [],
+            "indexed": true,
+            "label": "round_id",
+            "type": {
+              "displayName": [
+                "RoundId"
+              ],
+              "type": 5
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "value",
+            "type": {
+              "displayName": [
+                "Balance"
+              ],
+              "type": 1
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "max_votes",
+            "type": {
+              "displayName": [
+                "VotesNumber"
+              ],
+              "type": 2
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "finish_at",
+            "type": {
+              "displayName": [
+                "Timestamp"
+              ],
+              "type": 3
+            }
+          }
+        ],
+        "docs": [
+          "New round event."
+        ],
+        "label": "NewRound"
+      },
+      {
+        "args": [
+          {
+            "docs": [],
+            "indexed": true,
+            "label": "round_id",
+            "type": {
+              "displayName": [
+                "RoundId"
+              ],
+              "type": 5
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "total_votes",
+            "type": {
+              "displayName": [
+                "VotesNumber"
+              ],
+              "type": 2
+            }
+          },
+          {
+            "docs": [],
+            "indexed": false,
+            "label": "total_reputation",
+            "type": {
+              "displayName": [
+                "Reputation"
+              ],
+              "type": 5
+            }
+          }
+        ],
+        "docs": [
+          "Close round event."
+        ],
+        "label": "CloseRound"
+      }
+    ],
+    "lang_error": {
+      "displayName": [
+        "ink",
+        "LangError"
+      ],
+      "type": 12
+    },
+    "messages": [
+      {
+        "args": [
+          {
+            "label": "contributor_id",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 7
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Administrative function: adding a administrator."
+        ],
+        "label": "add_admin",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 13
+        },
+        "selector": "0x561367c2"
+      },
+      {
+        "args": [
+          {
+            "label": "contributor_id",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 7
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Administrative function: removing a administrator."
+        ],
+        "label": "rem_admin",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 13
+        },
+        "selector": "0xe94efe9f"
+      },
+      {
+        "args": [
+          {
+            "label": "contributor_id",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 7
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Administrative function: adding a contributor, there must be no active round."
+        ],
+        "label": "add_contributor",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 13
+        },
+        "selector": "0x158f7e73"
+      },
+      {
+        "args": [
+          {
+            "label": "contributor_id",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 7
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Administrative function: removing a contributor, there must be no active round."
+        ],
+        "label": "rem_contributor",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 13
+        },
+        "selector": "0xec43c3d5"
+      },
+      {
+        "args": [
+          {
+            "label": "name",
+            "type": {
+              "displayName": [
+                "String"
+              ],
+              "type": 0
+            }
+          },
+          {
+            "label": "value",
+            "type": {
+              "displayName": [
+                "Balance"
+              ],
+              "type": 1
+            }
+          },
+          {
+            "label": "max_votes",
+            "type": {
+              "displayName": [
+                "VotesNumber"
+              ],
+              "type": 2
+            }
+          },
+          {
+            "label": "finish_at",
+            "type": {
+              "displayName": [
+                "Timestamp"
+              ],
+              "type": 3
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Administrative function: adds a new round of distribution."
+        ],
+        "label": "open_round",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 13
+        },
+        "selector": "0xde2513b9"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [
+          " Administrative function: distributing funds to contributors."
+        ],
+        "label": "close_round",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 13
+        },
+        "selector": "0xc21bf79b"
+      },
+      {
+        "args": [
+          {
+            "label": "milliseconds",
+            "type": {
+              "displayName": [
+                "Timestamp"
+              ],
+              "type": 3
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Administrative function: set the minimum time for a round, for the next round."
+        ],
+        "label": "set_min_elapsed_milliseconds",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 13
+        },
+        "selector": "0xc6b368da"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [
+          " Get the minimum time for a round."
+        ],
+        "label": "get_min_elapsed_milliseconds",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 16
+        },
+        "selector": "0x53e5cbd2"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [
+          " Get the address of the contract"
+        ],
+        "label": "get_contract_account_id",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 17
+        },
+        "selector": "0xf484067a"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [],
+        "label": "get_block_timestamp",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 16
+        },
+        "selector": "0x0224175f"
+      },
+      {
+        "args": [
+          {
+            "label": "receiver_id",
+            "type": {
+              "displayName": [
+                "AccountId"
+              ],
+              "type": 7
+            }
+          },
+          {
+            "label": "vote",
+            "type": {
+              "displayName": [
+                "Vote"
+              ],
+              "type": 18
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " Submit a vote, the caller (`emitter_id`) gives the vote to `receiver_id`."
+        ],
+        "label": "VoteTrait::submit_vote",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 13
+        },
+        "selector": "0x75ec4483"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [
+          " Getting the reputation of a contributor, from whom it is consulted."
+        ],
+        "label": "VoteTrait::get_reputation",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 20
+        },
+        "selector": "0xe2d7304e"
+      }
+    ]
+  },
+  "storage": {
+    "root": {
+      "layout": {
+        "struct": {
+          "fields": [
+            {
+              "layout": {
+                "root": {
+                  "layout": {
+                    "struct": {
+                      "fields": [
+                        {
+                          "layout": {
+                            "leaf": {
+                              "key": "0x55fc0059",
+                              "ty": 0
+                            }
+                          },
+                          "name": "name"
+                        },
+                        {
+                          "layout": {
+                            "leaf": {
+                              "key": "0x55fc0059",
+                              "ty": 1
+                            }
+                          },
+                          "name": "value"
+                        },
+                        {
+                          "layout": {
+                            "leaf": {
+                              "key": "0x55fc0059",
+                              "ty": 2
+                            }
+                          },
+                          "name": "max_votes"
+                        },
+                        {
+                          "layout": {
+                            "leaf": {
+                              "key": "0x55fc0059",
+                              "ty": 3
+                            }
+                          },
+                          "name": "finish_at"
+                        },
+                        {
+                          "layout": {
+                            "leaf": {
+                              "key": "0x55fc0059",
+                              "ty": 4
+                            }
+                          },
+                          "name": "is_finished"
+                        }
+                      ],
+                      "name": "Round"
+                    }
+                  },
+                  "root_key": "0x55fc0059"
+                }
+              },
+              "name": "rounds"
+            },
+            {
+              "layout": {
+                "leaf": {
+                  "key": "0x00000000",
+                  "ty": 5
+                }
+              },
+              "name": "current_round_id"
+            },
+            {
+              "layout": {
+                "leaf": {
+                  "key": "0x00000000",
+                  "ty": 3
+                }
+              },
+              "name": "min_elapsed_milliseconds"
+            },
+            {
+              "layout": {
+                "root": {
+                  "layout": {
+                    "enum": {
+                      "dispatchKey": "0xc750c608",
+                      "name": "Role",
+                      "variants": {
+                        "0": {
+                          "fields": [],
+                          "name": "Admin"
+                        },
+                        "1": {
+                          "fields": [],
+                          "name": "Contributor"
+                        }
+                      }
+                    }
+                  },
+                  "root_key": "0xc750c608"
+                }
+              },
+              "name": "members"
+            },
+            {
+              "layout": {
+                "root": {
+                  "layout": {
+                    "struct": {
+                      "fields": [
+                        {
+                          "layout": {
+                            "leaf": {
+                              "key": "0xfb4e2d30",
+                              "ty": 5
+                            }
+                          },
+                          "name": "reputation"
+                        },
+                        {
+                          "layout": {
+                            "leaf": {
+                              "key": "0xfb4e2d30",
+                              "ty": 2
+                            }
+                          },
+                          "name": "votes_submitted"
+                        }
+                      ],
+                      "name": "Contributor"
+                    }
+                  },
+                  "root_key": "0xfb4e2d30"
+                }
+              },
+              "name": "contributors"
+            },
+            {
+              "layout": {
+                "root": {
+                  "layout": {
+                    "leaf": {
+                      "key": "0xe6ca0c5c",
+                      "ty": 6
+                    }
+                  },
+                  "root_key": "0xe6ca0c5c"
+                }
+              },
+              "name": "contributors_list"
+            },
+            {
+              "layout": {
+                "struct": {
+                  "fields": [
+                    {
+                      "layout": {
+                        "struct": {
+                          "fields": [
+                            {
+                              "layout": {
+                                "leaf": {
+                                  "key": "0x00000000",
+                                  "ty": 7
+                                }
+                              },
+                              "name": "account_id"
+                            }
+                          ],
+                          "name": "CallBuilder"
+                        }
+                      },
+                      "name": "inner"
+                    }
+                  ],
+                  "name": "Psp34Ref"
+                }
+              },
+              "name": "nft_ref"
+            }
+          ],
+          "name": "Organization"
+        }
+      },
+      "root_key": "0x00000000"
+    }
+  },
+  "types": [
+    {
+      "id": 0,
+      "type": {
+        "def": {
+          "primitive": "str"
+        }
+      }
+    },
+    {
+      "id": 1,
+      "type": {
+        "def": {
+          "primitive": "u128"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": {
+        "def": {
+          "primitive": "u8"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": {
+        "def": {
+          "primitive": "u64"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": {
+        "def": {
+          "primitive": "bool"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": {
+        "def": {
+          "primitive": "u32"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": {
+        "def": {
+          "sequence": {
+            "type": 7
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 8,
+                "typeName": "[u8; 32]"
+              }
+            ]
+          }
+        },
+        "path": [
+          "ink_primitives",
+          "types",
+          "AccountId"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "type": {
+        "def": {
+          "array": {
+            "len": 32,
+            "type": 2
+          }
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 8,
+                "typeName": "[u8; 32]"
+              }
+            ]
+          }
+        },
+        "path": [
+          "ink_primitives",
+          "types",
+          "Hash"
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 11
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 12
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 11
+          },
+          {
+            "name": "E",
+            "type": 12
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "type": {
+        "def": {
+          "tuple": []
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 1,
+                "name": "CouldNotReadInput"
+              }
+            ]
+          }
+        },
+        "path": [
+          "ink_primitives",
+          "LangError"
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 14
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 12
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 14
+          },
+          {
+            "name": "E",
+            "type": 12
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 11
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 15
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 11
+          },
+          {
+            "name": "E",
+            "type": 15
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 0,
+                "name": "AdministrativeFunction"
+              },
+              {
+                "index": 1,
+                "name": "CannotRemoveYourself"
+              },
+              {
+                "index": 2,
+                "name": "MemberAlreadyExists"
+              },
+              {
+                "index": 3,
+                "name": "MemberNotExist"
+              },
+              {
+                "index": 4,
+                "name": "OnlyContributorCanVote"
+              },
+              {
+                "index": 5,
+                "name": "CannotVoteItself"
+              },
+              {
+                "index": 6,
+                "name": "YouAreNotContributor"
+              },
+              {
+                "index": 7,
+                "name": "InvalidRoundParameter"
+              },
+              {
+                "index": 8,
+                "name": "IsNoActiveRound"
+              },
+              {
+                "index": 9,
+                "name": "IsAnNoFinishedRound"
+              },
+              {
+                "index": 10,
+                "name": "NotYetFinishedRound"
+              },
+              {
+                "index": 11,
+                "name": "InsufficientFunds"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 1,
+                    "typeName": "Balance"
+                  },
+                  {
+                    "type": 1,
+                    "typeName": "Balance"
+                  }
+                ],
+                "index": 12,
+                "name": "MulOverflow"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 7,
+                    "typeName": "AccountId"
+                  },
+                  {
+                    "type": 1,
+                    "typeName": "Balance"
+                  }
+                ],
+                "index": 13,
+                "name": "TransferFailed"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 2,
+                    "typeName": "VotesNumber"
+                  }
+                ],
+                "index": 14,
+                "name": "ExceedsVoteLimit"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 2,
+                    "typeName": "VotesNumber"
+                  }
+                ],
+                "index": 15,
+                "name": "ExceedsYourVoteLimit"
+              },
+              {
+                "index": 16,
+                "name": "NftNotSent"
+              }
+            ]
+          }
+        },
+        "path": [
+          "organization",
+          "errors",
+          "Error"
+        ]
+      }
+    },
+    {
+      "id": 16,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 3
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 12
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 3
+          },
+          {
+            "name": "E",
+            "type": 12
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 7
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 12
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 7
+          },
+          {
+            "name": "E",
+            "type": 12
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 18,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "sign",
+                "type": 19,
+                "typeName": "VoteSign"
+              },
+              {
+                "name": "value",
+                "type": 2,
+                "typeName": "VotesNumber"
+              }
+            ]
+          }
+        },
+        "path": [
+          "organization",
+          "types",
+          "Vote"
+        ]
+      }
+    },
+    {
+      "id": 19,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "index": 0,
+                "name": "Positive"
+              },
+              {
+                "index": 1,
+                "name": "Negative"
+              }
+            ]
+          }
+        },
+        "path": [
+          "organization",
+          "types",
+          "VoteSign"
+        ]
+      }
+    },
+    {
+      "id": 20,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 21
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 12
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 21
+          },
+          {
+            "name": "E",
+            "type": 12
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 21,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 5
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 15
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 5
+          },
+          {
+            "name": "E",
+            "type": 15
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 22,
+      "type": {
+        "def": {
+          "variant": {}
+        },
+        "path": [
+          "ink_env",
+          "types",
+          "NoChainExtension"
+        ]
+      }
+    }
+  ],
+  "version": "4"
+}
