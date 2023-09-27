@@ -27,7 +27,7 @@ pub enum Role {
 }
 
 /// Information on a contributor's reputation in a specific round
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Encode, Decode)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Encode, Decode, Default)]
 #[cfg_attr(
     feature = "std",
     derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
@@ -72,10 +72,10 @@ pub struct Round {
     pub name: String,
     /// Funds to be distributed in the round
     pub value: Balance,
-    /// End date of the round (timestamp), in milliseconds
-    pub finish_at: Timestamp,
     /// Maximum number of votes per contributor
     pub max_votes: VotesNumber,
+    /// End date of the round (timestamp), in milliseconds
+    pub finish_at: Timestamp,
     /// Establishes whether the distribution was completed
     pub is_finished: bool,
 }
