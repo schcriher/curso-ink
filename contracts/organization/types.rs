@@ -2,20 +2,20 @@ use ink::env::{DefaultEnvironment, Environment};
 use scale::{Decode, Encode};
 
 pub type AccountId = <DefaultEnvironment as Environment>::AccountId;
-pub type Timestamp = <DefaultEnvironment as Environment>::Timestamp;
+pub type Timestamp = <DefaultEnvironment as Environment>::Timestamp; // milliseconds
 pub type Balance = <DefaultEnvironment as Environment>::Balance;
 pub type String = ink::prelude::string::String;
 
-/// Identifier of a round, sequential numbers, starting at one
+/// Identifier of a round, sequential numbers, starting at one.
 pub type RoundId = u32;
 
-/// Contributor reputation, starting at one
+/// Contributor reputation, starting at one.
 pub type Reputation = u32;
 
-/// Number of votes
+/// Number of votes.
 pub type VotesNumber = u8;
 
-/// Member role
+/// Member role.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, scale::Encode, scale::Decode)]
 #[cfg_attr(
     feature = "std",
@@ -26,7 +26,7 @@ pub enum Role {
     Contributor,
 }
 
-/// Information on a contributor's reputation in a specific round
+/// Information on a contributor's reputation in a specific round.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Encode, Decode, Default)]
 #[cfg_attr(
     feature = "std",
@@ -39,7 +39,7 @@ pub struct Contributor {
 }
 
 /// Voting sign, positive adds, negative subtracts,
-/// the final sum or subtraction depends on the reputations of the sender and the receiver of votes
+/// the final sum or subtraction depends on the reputations of the sender of votes.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, scale::Encode, scale::Decode)]
 #[cfg_attr(
     feature = "std",
@@ -50,7 +50,7 @@ pub enum VoteSign {
     Negative,
 }
 
-/// Information on the vote to emit
+/// Information on the vote to emit.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, scale::Encode, scale::Decode)]
 #[cfg_attr(
     feature = "std",
@@ -61,21 +61,21 @@ pub struct Vote {
     pub value: VotesNumber,
 }
 
-/// Information on a round
+/// Information on a round.
 #[derive(Debug, PartialEq, Eq, Clone, scale::Encode, scale::Decode)]
 #[cfg_attr(
     feature = "std",
     derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
 )]
 pub struct Round {
-    /// Name of the round
+    /// Name of the round.
     pub name: String,
-    /// Funds to be distributed in the round
+    /// Funds to be distributed in the round.
     pub value: Balance,
-    /// Maximum number of votes per contributor
+    /// Maximum number of votes per contributor.
     pub max_votes: VotesNumber,
-    /// End date of the round (timestamp), in milliseconds
+    /// End date of the round (timestamp), in milliseconds.
     pub finish_at: Timestamp,
-    /// Establishes whether the distribution was completed
+    /// Establishes whether the distribution was completed.
     pub is_finished: bool,
 }

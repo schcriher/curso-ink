@@ -7,6 +7,7 @@ use crate::types::{AccountId, Balance, VotesNumber};
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 pub enum Error {
     AdministrativeFunction,
+    CannotRemoveYourself,
 
     MemberAlreadyExists,
     MemberNotExist,
@@ -16,13 +17,12 @@ pub enum Error {
     YouAreNotContributor,
 
     InvalidRoundParameter,
-    IsAnActiveRound,
     IsNoActiveRound,
+    IsAnNoFinishedRound,
     NotYetFinishedRound,
     InsufficientFunds,
-    AreNoVotes,
 
-    Overflow(Balance, Balance),
+    MulOverflow(Balance, Balance),
     TransferFailed(AccountId, Balance),
 
     ExceedsVoteLimit(VotesNumber),

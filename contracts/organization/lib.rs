@@ -5,7 +5,7 @@ mod tools;
 mod types;
 mod voting;
 
-// https://use.ink/
+// https://use.ink
 // https://paritytech.github.io/ink/ink_env/#functions
 // https://github.com/paritytech/ink-examples/tree/main
 
@@ -27,58 +27,73 @@ mod organization {
 
     type Result<T> = core::result::Result<T, Error>;
 
-    /// Voting event
+    //--- Events ----------------------------------------------------------------------//
+
+    /// Vote cast event.
     #[ink(event)]
-    pub struct VoteEvent {
-        #[ink(topic)]
-        from: AccountId,
-
-        #[ink(topic)]
-        to: AccountId,
-
+    pub struct VoteCast {
         #[ink(topic)]
         round_id: RoundId,
-
+        #[ink(topic)]
+        from: AccountId,
+        #[ink(topic)]
+        to: AccountId,
+        // ---
         value: VotesNumber,
     }
 
-    /// New round event
+    /// New round event.
     #[ink(event)]
-    pub struct NewRoundEvent {
+    pub struct NewRound {
         #[ink(topic)]
         round_id: RoundId,
-
+        // ---
         value: Balance,
         max_votes: VotesNumber,
         finish_at: Timestamp,
     }
 
+    /// Close round event.
+    #[ink(event)]
+    pub struct CloseRound {
+        #[ink(topic)]
+        round_id: RoundId,
+        // ---
+        total_votes: VotesNumber,
+        total_reputation: Reputation,
+    }
+
+    //---------------------------------------------------------------------------------//
+
     #[ink(storage)]
     pub struct Organization {
-        /// Map with all rounds
+        /// Map with all rounds.
         rounds: Mapping<RoundId, Round>,
 
-        /// Current round of voting, starts at 1
-        /// limitation: can be active only one round at a time
+        /// Current round of voting, starts at 1,
+        /// limitation: can be active only one round at a time.
         current_round_id: RoundId,
 
-        /// Map with all members and their role
+        /// Minimum time for a round
+        min_elapsed_milliseconds: Timestamp,
+
+        /// Map with all members and their role.
         members: Mapping<AccountId, Role>,
 
-        /// Map with all contributors and their current reputation
+        /// Map with all contributors and their current reputation.
         contributors: Mapping<AccountId, Contributor>,
 
-        /// List of all contributors, necessary to distribute the funds
+        /// List of all contributors, necessary to distribute the funds.
         contributors_list: Lazy<Vec<AccountId>>,
 
-        /// Reference to the NFT contract, which is the proof of vote
+        /// Reference to the NFT contract, which is the proof of vote.
         nft_ref: Psp34Ref,
     }
 
-    /////////////////////////////////////////////////////////////////////////////////////
+    //---------------------------------------------------------------------------------//
 
     /// Function that computes the reputation of a contributor,
-    /// receives the current reputation and returns the new one
+    /// receives the current reputation and returns the new one.
     fn get_reputation(receiver: Reputation, emitter: Reputation, vote: Vote) -> Reputation {
         let receiver = receiver as i64;
         let emitter = emitter as i64;
@@ -94,7 +109,7 @@ mod organization {
         } else if reputation > Reputation::MAX as i64 {
             Reputation::MAX
         } else {
-            reputation as Reputation
+            reputation as Reputation // overflow is not possible
         }
     }
 
@@ -104,7 +119,11 @@ mod organization {
         /// The constructor initializes the organization,
         /// including the administrator as a Admin member and instantiates the nft contract.
         #[ink(constructor)]
-        pub fn new(administrator_id: AccountId, nft_code_hash: Hash) -> Self {
+        pub fn new(
+            administrator_id: AccountId,
+            nft_code_hash: Hash,
+            min_elapsed_hours: u32,
+        ) -> Self {
             let rounds = Mapping::default();
             let mut members = Mapping::default();
             let contributors = Mapping::default();
@@ -113,12 +132,15 @@ mod organization {
             members.insert(administrator_id, &Role::Admin);
             contributors_list.set(&Vec::new());
 
+            let min_elapsed_milliseconds = (min_elapsed_hours * 60 * 60 * 1000) as Timestamp;
+
             Self {
                 rounds,
                 members,
                 contributors,
                 contributors_list,
                 current_round_id: 0,
+                min_elapsed_milliseconds,
                 nft_ref: Psp34Ref::new()
                     .code_hash(nft_code_hash)
                     .endowment(0)
@@ -160,7 +182,7 @@ mod organization {
             }
         }
 
-        fn is_admin(&self) -> Result<()> {
+        fn is_caller_admin(&self) -> Result<()> {
             let caller_id = self.env().caller();
             let caller_member = self.members.get(caller_id);
 
@@ -171,12 +193,55 @@ mod organization {
             Ok(())
         }
 
+        fn is_active_round(&self) -> Result<()> {
+            if let Some(round) = self.rounds.get(self.current_round_id) {
+                if !round.is_finished {
+                    return Err(Error::IsAnNoFinishedRound);
+                }
+            }
+            Ok(())
+        }
+
         // ------------------------------------------------------------------------------
 
-        /// Administrative function: adding a contributor
+        /// Administrative function: adding a administrator.
+        #[ink(message)]
+        pub fn add_admin(&mut self, contributor_id: AccountId) -> Result<()> {
+            self.is_caller_admin()?;
+
+            if self.members.contains(contributor_id) {
+                return Err(Error::MemberAlreadyExists);
+            }
+
+            self.add_member(contributor_id, Role::Admin);
+
+            Ok(())
+        }
+
+        /// Administrative function: removing a administrator.
+        #[ink(message)]
+        pub fn rem_admin(&mut self, contributor_id: AccountId) -> Result<()> {
+            self.is_caller_admin()?;
+
+            if !self.members.contains(contributor_id) {
+                return Err(Error::MemberNotExist);
+            }
+
+            if self.env().caller() == contributor_id {
+                // this prevents the contract from running out of administrators
+                return Err(Error::CannotRemoveYourself);
+            }
+
+            self.rem_member(contributor_id);
+
+            Ok(())
+        }
+
+        /// Administrative function: adding a contributor, there must be no active round.
         #[ink(message)]
         pub fn add_contributor(&mut self, contributor_id: AccountId) -> Result<()> {
-            self.is_admin()?;
+            self.is_caller_admin()?;
+            self.is_active_round()?;
 
             if self.members.contains(contributor_id) {
                 return Err(Error::MemberAlreadyExists);
@@ -187,10 +252,11 @@ mod organization {
             Ok(())
         }
 
-        /// Administrative function: removing a contributor
+        /// Administrative function: removing a contributor, there must be no active round.
         #[ink(message)]
         pub fn rem_contributor(&mut self, contributor_id: AccountId) -> Result<()> {
-            self.is_admin()?;
+            self.is_caller_admin()?;
+            self.is_active_round()?;
 
             if !self.members.contains(contributor_id) {
                 return Err(Error::MemberNotExist);
@@ -201,7 +267,7 @@ mod organization {
             Ok(())
         }
 
-        /// Administrative function: adds a new round of distribution
+        /// Administrative function: adds a new round of distribution.
         #[ink(message)]
         pub fn open_round(
             &mut self,
@@ -210,27 +276,18 @@ mod organization {
             max_votes: VotesNumber,
             finish_at: Timestamp,
         ) -> Result<()> {
-            self.is_admin()?;
-
-            if let Some(round) = self.rounds.get(self.current_round_id) {
-                if !round.is_finished {
-                    return Err(Error::IsAnActiveRound);
-                }
-            }
+            self.is_caller_admin()?;
+            self.is_active_round()?;
 
             if value <= self.env().balance() + self.env().minimum_balance() {
                 return Err(Error::InsufficientFunds);
             }
 
-            // TODO: A minimum max_votes could be established
-
             if max_votes < 1 {
                 return Err(Error::InvalidRoundParameter);
             }
 
-            // TODO: A minimum time could be established
-
-            if finish_at < self.env().block_timestamp() {
+            if finish_at < self.env().block_timestamp() + self.min_elapsed_milliseconds {
                 return Err(Error::InvalidRoundParameter);
             }
 
@@ -244,7 +301,7 @@ mod organization {
             self.current_round_id += 1;
             self.rounds.insert(self.current_round_id, &round);
 
-            self.env().emit_event(NewRoundEvent {
+            self.env().emit_event(NewRound {
                 round_id: self.current_round_id,
                 value,
                 max_votes,
@@ -254,12 +311,13 @@ mod organization {
             Ok(())
         }
 
-        /// Administrative function: distributing funds to contributors
+        /// Administrative function: distributing funds to contributors.
         #[ink(message)]
         pub fn close_round(&mut self) -> Result<()> {
-            self.is_admin()?;
+            self.is_caller_admin()?;
 
             let round = self.rounds.get(self.current_round_id);
+
             if round.is_none() {
                 return Err(Error::IsNoActiveRound);
             }
@@ -273,21 +331,21 @@ mod organization {
                 return Err(Error::NotYetFinishedRound);
             }
 
+            let mut total_votes = 0;
             let mut total_reputation = 0;
             let mut contributors = Vec::new();
 
             for contributor_id in self.contributors_list.get().unwrap().iter() {
                 let contributor = self.contributors.get(contributor_id).unwrap();
+
+                // if he did not cast a vote or a vote was cast for him,
+                // he may have the data from the previous round.
+                self.contributor_reset_if_necessary(contributor);
+                // NOTE: If no votes were cast, the funds are distributed equally.
+
+                total_votes += contributor.votes_submitted;
                 total_reputation += contributor.reputation;
                 contributors.push((contributor_id.to_owned(), contributor.reputation));
-            }
-
-            if total_reputation == 0 {
-                // TODO: implement an emergency function that can close a round
-                //       if there are no votes in the round,
-                //       but this function must be executed first, if at all,
-                //       to avoid unjustified closure by an admin.
-                return Err(Error::AreNoVotes);
             }
 
             // unwrap is safe here: total_reputation != 0
@@ -296,7 +354,7 @@ mod organization {
             for contributor in contributors.iter() {
                 let amount = min_fraction
                     .checked_mul(contributor.1.into())
-                    .ok_or(Error::Overflow(min_fraction, contributor.1.into()))?; // TODO: improve error handling
+                    .ok_or(Error::MulOverflow(min_fraction, contributor.1.into()))?; // should not happen
 
                 self.env()
                     .transfer(contributor.0, amount)
@@ -304,8 +362,6 @@ mod organization {
             }
 
             contributors.sort_by(|a, b| a.1.cmp(&b.1)); // sorted from lowest to highest by reputation
-
-            ink::env::debug_println!("{:?}", contributors); ////////////////////////////////// XXX
 
             // FIXME: NFTs must be of three types
 
@@ -333,14 +389,45 @@ mod organization {
             round.is_finished = true;
             self.rounds.insert(self.current_round_id, &round);
 
+            self.env().emit_event(CloseRound {
+                round_id: self.current_round_id,
+                total_votes,
+                total_reputation,
+            });
+
             Ok(())
+        }
+
+        /// Administrative function: set the minimum time for a round, for the next round.
+        #[ink(message)]
+        pub fn set_min_elapsed_milliseconds(&mut self, milliseconds: Timestamp) -> Result<()> {
+            self.is_caller_admin()?;
+            self.min_elapsed_milliseconds = milliseconds;
+            Ok(())
+        }
+
+        /// Get the minimum time for a round.
+        #[ink(message)]
+        pub fn get_min_elapsed_milliseconds(&self) -> Timestamp {
+            self.min_elapsed_milliseconds
+        }
+
+        /// Get the address of the contract
+        #[ink(message)]
+        pub fn get_contract_account_id(&self) -> AccountId {
+            self.env().account_id()
+        }
+
+        #[ink(message)]
+        pub fn get_block_timestamp(&self) -> Timestamp {
+            self.env().block_timestamp()
         }
     }
 
     /////////////////////////////////////////////////////////////////////////////////////
 
     impl VoteTrait for Organization {
-        /// Submit a vote, the caller (`emitter_id`) gives the vote to `receiver_id`
+        /// Submit a vote, the caller (`emitter_id`) gives the vote to `receiver_id`.
         #[ink(message)]
         fn submit_vote(&mut self, receiver_id: AccountId, vote: Vote) -> Result<()> {
             let emitter_id = self.env().caller();
@@ -364,7 +451,7 @@ mod organization {
                 return Err(Error::IsNoActiveRound);
             }
 
-            // unwrap is safe here
+            // unwraps is safe here
             let round = round.unwrap();
             let emitter = self.contributors.get(emitter_id).unwrap();
             let mut receiver = self.contributors.get(receiver_id).unwrap();
@@ -373,6 +460,7 @@ mod organization {
                 return Err(Error::ExceedsVoteLimit(round.max_votes));
             }
 
+            // for efficiency reasons, this check is performed here, instead of in `close_round`
             self.contributor_reset_if_necessary(emitter);
             self.contributor_reset_if_necessary(receiver);
 
@@ -383,19 +471,22 @@ mod organization {
             }
 
             receiver.reputation = get_reputation(receiver.reputation, emitter.reputation, vote);
-            self.contributors.insert(receiver_id, &receiver); // update
 
-            self.env().emit_event(VoteEvent {
+            // persist contributor data
+            self.contributors.insert(emitter_id, &emitter); // may not update anything
+            self.contributors.insert(receiver_id, &receiver);
+
+            self.env().emit_event(VoteCast {
+                round_id: self.current_round_id,
                 from: emitter_id,
                 to: receiver_id,
                 value: vote.value,
-                round_id: self.current_round_id,
             });
 
             Ok(())
         }
 
-        /// Getting the reputation of a contributor, from whom it is consulted
+        /// Getting the reputation of a contributor, from whom it is consulted.
         #[ink(message)]
         fn get_reputation(&self) -> Result<Reputation> {
             let caller_id = self.env().caller();
@@ -518,7 +609,8 @@ mod organization {
                     .expect("nft contract upload failed")
                     .code_hash;
 
-                let contract_ref = OrganizationRef::new($admin_account.id, nft_code_hash);
+                let min_elapsed_hours = 24; // 1 day
+                let contract_ref = OrganizationRef::new($admin_account.id, nft_code_hash, min_elapsed_hours);
                 let $contract_id = $client
                     .instantiate("organization", &$admin_account.key, contract_ref, 0, None)
                     .await
